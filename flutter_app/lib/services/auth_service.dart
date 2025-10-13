@@ -4,31 +4,32 @@ import '../api/api_client.dart';
 import '../utils/config.dart';
 import '../models/user.dart';
 
-class AuthRepository {
-  final Dio _dio = ApiClient().dio;
+class AuthService {
+  final _dio = ApiClient().dio;
 
-  Future<(AppUser, String)> login(String email, String password) async {
+  Future<(AppUser, String)> login({required String email, required String password}) async {
     final res = await _dio.post(
       AppConfig.loginPath,
       data: {'email': email, 'password': password},
       options: Options(headers: {'Accept': 'application/json'}),
     );
+
     final data = res.data as Map<String, dynamic>;
     final token = (data['access_token'] ?? data['token']) as String;
-    final user = AppUser.fromJson(data['user'] as Map<String, dynamic>);
+    final user = AppUser.fromJson(data['user'] as Map<String,dynamic>);
 
-    final sp = await SharedPreferences.getInstance();
-    await sp.setString('token', token);
-    await sp.setString('user_role', user.role);
-    await sp.setString('user_name', user.name);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('token', token);
+    await prefs.setString('user_role', user.role);
+    await prefs.setString('user_name', user.name);
 
     return (user, token);
   }
 
-  Future<AppUser?> profile() async {
+  Future<AppUser?> me() async {
     try {
       final res = await _dio.get(AppConfig.profilePath);
-      return AppUser.fromJson(res.data as Map<String, dynamic>);
+      return AppUser.fromJson(res.data as Map<String,dynamic>);
     } on DioException {
       return null;
     }
@@ -36,7 +37,7 @@ class AuthRepository {
 
   Future<void> logout() async {
     try { await _dio.post('/api/auth/logout'); } catch (_) {}
-    final sp = await SharedPreferences.getInstance();
-    await sp.clear();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
   }
 }

@@ -4,6 +4,7 @@ return [
 
     'firebase' => [
         'credentials' => env('FIREBASE_CREDENTIALS'), // absolute path
+        'project_id'  => env('FIREBASE_PROJECT_ID', null),
     ],
 
     'postmark' => [

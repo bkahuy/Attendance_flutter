@@ -1,36 +1,45 @@
 import 'package:dio/dio.dart';
-import 'api_client.dart';
+import '../api/api_client.dart';
+import '../utils/config.dart';
 
 class TeacherRepository {
-  final _dio = Api.I.dio;
-  Future<List<dynamic>> schedule(String date) async {
-    final r =
-        await _dio.get('/teacher/schedule', queryParameters: {'date': date});
-    return (r.data as List).cast<dynamic>();
+  final Dio _dio = ApiClient().dio;
+
+  /// Lịch giảng dạy theo ngày (YYYY-MM-DD)
+  Future<List<Map<String, dynamic>>> scheduleByDate(String date) async {
+    final res = await _dio.get(
+      AppConfig.teacherSchedulePath,
+      queryParameters: {'date': date},
+      options: Options(headers: {'Accept': 'application/json'}),
+    );
+    final List list = res.data as List;
+    return list.cast<Map<String, dynamic>>();
   }
 
-  Future<Map<String, dynamic>> createSession(
-      {required int classSectionId,
-      required String startAt,
-      required String endAt,
-      bool qr = true,
-      bool camera = true,
-      String? password,
-      int? scheduleId}) async {
-    final mode = {
-      'camera': camera,
-      'qr': qr,
-      if (password != null && password.isNotEmpty) 'password': true
-    };
-    final body = {
-      'class_section_id': classSectionId,
-      'start_at': startAt,
-      'end_at': endAt,
-      'mode_flags': mode,
-      if (password != null && password.isNotEmpty) 'password': password,
-      if (scheduleId != null) 'schedule_id': scheduleId
-    };
-    final r = await _dio.post('/attendance/session', data: body);
-    return Map<String, dynamic>.from(r.data as Map);
+  /// Tạo phiên điểm danh thủ công
+  Future<Map<String, dynamic>> createSession({
+    required int classSectionId,
+    required DateTime startAt,
+    required DateTime endAt,
+    bool camera = true,
+    bool gps = false,
+    String? password,
+  }) async {
+    final mode = <String, dynamic>{};
+    if (camera) mode['camera'] = true;
+    if (gps) mode['gps'] = true;
+    if (password != null && password.isNotEmpty) mode['password'] = password;
+
+    final res = await _dio.post(
+      AppConfig.teacherCreateSessionPath,
+      data: {
+        'class_section_id': classSectionId,
+        'start_at': startAt.toIso8601String(),
+        'end_at': endAt.toIso8601String(),
+        'mode_flags': mode,
+      },
+      options: Options(headers: {'Accept': 'application/json'}),
+    );
+    return Map<String, dynamic>.from(res.data as Map);
   }
 }

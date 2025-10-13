@@ -1,115 +1,156 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../../api/teacher_repository.dart';
-import '../../widgets/primary_button.dart';
-import '../../utils/format.dart';
-import 'qr_screen.dart';
+import '../../services/attendance_service.dart';
 
 class CreateSessionSheet extends StatefulWidget {
+  /// Bắt buộc: id lớp học phần mà GV muốn mở điểm danh
   final int classSectionId;
-  const CreateSessionSheet({super.key, required this.classSectionId});
+  /// Hiển thị tên môn/lớp cho dễ nhìn (tuỳ ý)
+  final String? courseLabel;
+
+  const CreateSessionSheet({
+    super.key,
+    required this.classSectionId,
+    this.courseLabel,
+  });
+
   @override
   State<CreateSessionSheet> createState() => _CreateSessionSheetState();
 }
 
 class _CreateSessionSheetState extends State<CreateSessionSheet> {
-  final _repo = TeacherRepository();
-  DateTime _start = DateTime.now();
-  DateTime _end = DateTime.now().add(const Duration(hours: 2));
-  bool _qr = true;
   final _pwd = TextEditingController();
-  bool _loading = false;
+  DateTime _start = DateTime.now().add(const Duration(minutes: 1));
+  DateTime _end   = DateTime.now().add(const Duration(minutes: 91));
+
+  bool _camera = true;
+  bool _gps = false;
+  bool _submitting = false;
+
+  @override
+  void dispose() {
+    _pwd.dispose();
+    super.dispose();
+  }
+
   Future<void> _pickStart() async {
     final d = await showDatePicker(
-        context: context,
-        initialDate: _start,
-        firstDate: DateTime(2020),
-        lastDate: DateTime(2100));
+      context: context,
+      firstDate: DateTime.now().subtract(const Duration(days: 1)),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+      initialDate: _start,
+    );
     if (d == null) return;
-    final t = await showTimePicker(
-        context: context, initialTime: TimeOfDay.fromDateTime(_start));
+    final t = await showTimePicker(context: context, initialTime: TimeOfDay.fromDateTime(_start));
     if (t == null) return;
     setState(() => _start = DateTime(d.year, d.month, d.day, t.hour, t.minute));
+    if (_end.isBefore(_start)) {
+      setState(() => _end = _start.add(const Duration(minutes: 90)));
+    }
   }
 
   Future<void> _pickEnd() async {
     final d = await showDatePicker(
-        context: context,
-        initialDate: _end,
-        firstDate: DateTime(2020),
-        lastDate: DateTime(2100));
+      context: context,
+      firstDate: _start,
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+      initialDate: _end,
+    );
     if (d == null) return;
-    final t = await showTimePicker(
-        context: context, initialTime: TimeOfDay.fromDateTime(_end));
+    final t = await showTimePicker(context: context, initialTime: TimeOfDay.fromDateTime(_end));
     if (t == null) return;
-    setState(() => _end = DateTime(d.year, d.month, d.day, t.hour, t.minute));
+    final newEnd = DateTime(d.year, d.month, d.day, t.hour, t.minute);
+    if (newEnd.isBefore(_start)) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Giờ kết thúc phải sau giờ bắt đầu')));
+      return;
+    }
+    setState(() => _end = newEnd);
   }
 
   Future<void> _submit() async {
-    setState(() => _loading = true);
+    if (_submitting) return;
+    setState(() => _submitting = true);
     try {
-      final res = await _repo.createSession(
-          classSectionId: widget.classSectionId,
-          startAt: hms.format(_start),
-          endAt: hms.format(_end),
-          qr: _qr,
-          camera: true,
-          password: _pwd.text.isEmpty ? null : _pwd.text);
+      final res = await AttendanceService().createSession(
+        classSectionId: widget.classSectionId,
+        startAt: _start,
+        endAt: _end,
+        camera: _camera,
+        gps: _gps,
+        password: _pwd.text.isEmpty ? null : _pwd.text.trim(),
+      );
       if (!mounted) return;
-      final session = res['session'] as Map<String, dynamic>;
-      final qr = res['qr'] as Map<String, dynamic>?;
-      final id = session['id'] as int;
-      final token = qr?['token'] as String?;
-      final qrText = 'attendance://session?id=$id&token=${token ?? ''}';
-      Navigator.pop(context);
-      Navigator.push(
-          context,
-          MaterialPageRoute(
-              builder: (_) => QrScreen(
-                  qrText: qrText, sessionId: id, password: _pwd.text)));
+
+      // Trả kết quả về caller (TeacherHome)
+      Navigator.of(context).pop(res);
     } catch (e) {
-      if (mounted)
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Tạo thất bại: $e')));
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Tạo phiên thất bại: $e')));
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) setState(() => _submitting = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-        padding: const EdgeInsets.all(16),
+    final fmt = DateFormat('dd/MM/yyyy HH:mm');
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
         child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Text('Tạo Buổi Điểm Danh',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 12),
-              Row(children: [
-                Expanded(
-                    child: Text(
-                        'Bắt đầu: ${DateFormat('dd/MM HH:mm').format(_start)}')),
-                TextButton(onPressed: _pickStart, child: const Text('Chọn'))
-              ]),
-              Row(children: [
-                Expanded(
-                    child: Text(
-                        'Kết thúc: ${DateFormat('dd/MM HH:mm').format(_end)}')),
-                TextButton(onPressed: _pickEnd, child: const Text('Chọn'))
-              ]),
-              TextField(
-                  controller: _pwd,
-                  decoration:
-                      const InputDecoration(labelText: 'Password (nếu có)')),
-              SwitchListTile(
-                  value: _qr,
-                  onChanged: (v) => setState(() => _qr = v),
-                  title: const Text('Bật QR cho SV quét')),
-              const SizedBox(height: 12),
-              PrimaryButton(text: 'Tạo', onPressed: _submit, loading: _loading),
-              const SizedBox(height: 8),
-            ]));
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(height: 4, width: 40, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(12))),
+            const SizedBox(height: 12),
+            Text(widget.courseLabel == null ? 'Tạo phiên điểm danh' : 'Tạo phiên - ${widget.courseLabel!}',
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 12),
+
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Bắt đầu'),
+              subtitle: Text(fmt.format(_start)),
+              trailing: IconButton(icon: const Icon(Icons.schedule), onPressed: _pickStart),
+            ),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Kết thúc'),
+              subtitle: Text(fmt.format(_end)),
+              trailing: IconButton(icon: const Icon(Icons.timer_off), onPressed: _pickEnd),
+            ),
+
+            SwitchListTile(
+              value: _camera,
+              onChanged: (v) => setState(() => _camera = v),
+              title: const Text('Bắt buộc chụp ảnh'),
+            ),
+            SwitchListTile(
+              value: _gps,
+              onChanged: (v) => setState(() => _gps = v),
+              title: const Text('Bật kiểm tra GPS'),
+            ),
+            TextField(
+              controller: _pwd,
+              decoration: const InputDecoration(
+                labelText: 'Mật khẩu (nếu muốn)',
+                hintText: 'Ví dụ: 1234',
+              ),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: _submitting ? null : _submit,
+                icon: _submitting ? const SizedBox(
+                  height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                ) : const Icon(Icons.play_circle),
+                label: Text(_submitting ? 'Đang tạo...' : 'Tạo phiên'),
+              ),
+            ),
+            const SizedBox(height: 10),
+          ],
+        ),
+      ),
+    );
   }
 }

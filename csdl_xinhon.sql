@@ -1,13 +1,5 @@
 -- ========================================
--- DATABASE: attendance_db
--- PURPOSE : Hệ thống điểm danh sinh viên (Admin - Teacher - Student)
--- AUTHOR  : Dat x ChatGPT
--- ENGINE  : MySQL 8.x
--- ========================================
--- 1️⃣ Tạo database và user
-create database attendance
--- ========================================
--- 2️⃣ Bảng người dùng
+-- TABLES
 -- ========================================
 create table users (
   id BIGINT UNSIGNED AUTO_INCREMENT primary key,
@@ -24,9 +16,6 @@ create table users (
   INDEX idx_users_status (status)
 ) ENGINE = InnoDB;
 
--- ========================================
--- 3️⃣ Hồ sơ sinh viên
--- ========================================
 create table students (
   id BIGINT UNSIGNED AUTO_INCREMENT primary key,
   user_id BIGINT UNSIGNED not null unique,
@@ -37,20 +26,14 @@ create table students (
   foreign KEY (user_id) references users (id) on delete CASCADE on update CASCADE
 ) ENGINE = InnoDB;
 
--- ========================================
--- 4️⃣ Hồ sơ giảng viên
--- ========================================
 create table teachers (
   id BIGINT UNSIGNED AUTO_INCREMENT primary key,
   user_id BIGINT UNSIGNED not null unique,
   teacher_code VARCHAR(50) not null unique,
-  dept VARCHAR(150) null, --khoa/bộ môn
+  dept VARCHAR(150) null,
   foreign KEY (user_id) references users (id) on delete CASCADE on update CASCADE
 ) ENGINE = InnoDB;
 
--- ========================================
--- 5️⃣ Môn học
--- ========================================
 create table courses (
   id BIGINT UNSIGNED AUTO_INCREMENT primary key,
   code VARCHAR(50) not null unique,
@@ -60,14 +43,11 @@ create table courses (
   updated_at DATETIME not null default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP
 ) ENGINE = InnoDB;
 
--- ========================================
--- 6️⃣ Lớp học phần
--- ========================================
 create table class_sections (
   id BIGINT UNSIGNED AUTO_INCREMENT primary key,
   course_id BIGINT UNSIGNED not null,
   teacher_id BIGINT UNSIGNED not null,
-  term VARCHAR(50) not null, --học kì 
+  term VARCHAR(50) not null,
   room VARCHAR(50) null,
   capacity INT UNSIGNED null,
   start_date DATE null,
@@ -81,9 +61,6 @@ create table class_sections (
   INDEX idx_class_teacher (teacher_id)
 ) ENGINE = InnoDB;
 
--- ========================================
--- 7️⃣ Liên kết sinh viên ↔ lớp học phần
--- ========================================
 create table class_section_students (
   id BIGINT UNSIGNED AUTO_INCREMENT primary key,
   class_section_id BIGINT UNSIGNED not null,
@@ -95,14 +72,12 @@ create table class_section_students (
   INDEX idx_cls_student (student_id)
 ) ENGINE = InnoDB;
 
--- ========================================
--- 8️⃣ Lịch dạy
--- ========================================
+-- Note: WEEKDAY() in MySQL returns 0=Monday .. 6=Sunday
 create table schedules (
   id BIGINT UNSIGNED AUTO_INCREMENT primary key,
   class_section_id BIGINT UNSIGNED not null,
   date DATE null,
-  weekday TINYINT UNSIGNED null, -- 0=Sun..6=Sat
+  weekday TINYINT UNSIGNED null, -- 0=Monday .. 6=Sunday (matches WEEKDAY())
   start_time TIME not null,
   end_time TIME not null,
   recurring_flag TINYINT (1) not null default 0,
@@ -116,9 +91,6 @@ create table schedules (
   INDEX idx_schedules_weekday (weekday, start_time)
 ) ENGINE = InnoDB;
 
--- ========================================
--- 9️⃣ Phiên điểm danh
--- ========================================
 create table attendance_sessions (
   id BIGINT UNSIGNED AUTO_INCREMENT primary key,
   class_section_id BIGINT UNSIGNED not null,
@@ -139,9 +111,6 @@ create table attendance_sessions (
   INDEX idx_att_sess_status (status)
 ) ENGINE = InnoDB;
 
--- ========================================
--- 🔟 Token QR
--- ========================================
 create table qr_tokens (
   id BIGINT UNSIGNED AUTO_INCREMENT primary key,
   attendance_session_id BIGINT UNSIGNED not null,
@@ -152,9 +121,6 @@ create table qr_tokens (
   INDEX idx_qr_exp (expires_at)
 ) ENGINE = InnoDB;
 
--- ========================================
--- 11️⃣ Bản ghi điểm danh
--- ========================================
 create table attendance_records (
   id BIGINT UNSIGNED AUTO_INCREMENT primary key,
   attendance_session_id BIGINT UNSIGNED not null,
@@ -172,9 +138,6 @@ create table attendance_records (
   INDEX idx_att_rec_status (status)
 ) ENGINE = InnoDB;
 
--- ========================================
--- 12️⃣ (Tùy chọn) Token API nếu không dùng JWT
--- ========================================
 create table api_tokens (
   id BIGINT UNSIGNED AUTO_INCREMENT primary key,
   user_id BIGINT UNSIGNED not null,
@@ -186,7 +149,7 @@ create table api_tokens (
 ) ENGINE = InnoDB;
 
 -- ========================================
--- 13️⃣ View thống kê
+-- VIEWS
 -- ========================================
 create or replace view vw_class_attendance_rate as
 select
@@ -237,143 +200,86 @@ from
   left join users u on u.id = st.user_id;
 
 -- ========================================
--- 14️⃣ Procedure lấy lịch giảng dạy
+-- STORED PROCEDURE
 -- ========================================
 DELIMITER $$
-CREATE PROCEDURE sp_teacher_daily_schedule(IN p_teacher_user_id BIGINT, IN p_date DATE)
+
+CREATE PROCEDURE sp_teacher_daily_schedule(
+    IN p_teacher_user_id BIGINT,
+    IN p_date DATE
+)
 BEGIN
-  SELECT sc.id AS class_section_id, c.code, c.name, sc.term, sch.start_time, sch.end_time, sc.room
-  FROM class_sections sc
-  JOIN teachers t   ON t.id = sc.teacher_id
-  JOIN users tu     ON tu.id = t.user_id
-  JOIN courses c    ON c.id = sc.course_id
-  JOIN schedules sch ON sch.class_section_id = sc.id
-  WHERE tu.id = p_teacher_user_id
-    AND (
-      (sch.recurring_flag = 0 AND sch.date = p_date)
-      OR
-      (sch.recurring_flag = 1 AND sch.weekday = WEEKDAY(p_date))
-    )
-  ORDER BY sch.start_time;
-END$$ DELIMITER;
+    SELECT sc.id AS class_section_id,
+           c.code,
+           c.name,
+           sc.term,
+           sch.start_time,
+           sch.end_time,
+           sc.room
+    FROM class_sections sc
+    JOIN teachers t    ON t.id = sc.teacher_id
+    JOIN users tu      ON tu.id = t.user_id
+    JOIN courses c     ON c.id = sc.course_id
+    JOIN schedules sch ON sch.class_section_id = sc.id
+    WHERE tu.id = p_teacher_user_id
+      AND (
+        (sch.recurring_flag = 0 AND sch.date = p_date)
+        OR
+        (sch.recurring_flag = 1 AND sch.weekday = WEEKDAY(p_date))
+      )
+    ORDER BY sch.start_time;
+END$$
+
+DELIMITER ;
+
+DROP PROCEDURE sp_teacher_daily_schedule;
+
+
 
 -- ========================================
--- data
+-- SAMPLE DATA (fixed)
 -- ========================================
-insert into
-  users (name, email, password, role)
-values
+insert into users (name, email, password, role) values
   ('Admin', 'admin@example.com', 'admin', 'admin'),
-  (
-    'GV A',
-    'teacher.a@example.com',
-    'teacher',
-    'teacher'
-  ),
-  (
-    'GV B',
-    'teacher.b@example.com',
-    'teacher',
-    'teacher'
-  ),
-  (
-    'GV C',
-    'teacher.c@example.com',
-    'teacher',
-    'teacher'
-  ),
-  (
-    'SV A',
-    'student.a@example.com',
-    'student',
-    'student'
-  ),
-  (
-    'SV B',
-    'student.b@example.com',
-    'student',
-    'student'
-  ),
-  (
-    'SV C',
-    'student.c@example.com',
-    'student',
-    'student'
-  );
+  ('GV A', 'teacher.a@example.com', 'teacher', 'teacher'),
+  ('GV B', 'teacher.b@example.com', 'teacher', 'teacher'),
+  ('GV C', 'teacher.c@example.com', 'teacher', 'teacher'),
+  ('SV A', 'student.a@example.com', 'student', 'student'),
+  ('SV B', 'student.b@example.com', 'student', 'student'),
+  ('SV C', 'student.c@example.com', 'student', 'student');
 
-insert into
-  teachers (user_id, teacher_code, dept)
-select
-  id,
-  'T001',
-  'CNTT'
-from
-  users
-where
-  email = 'teacher.a@example.com',
-select
-  id,
-  'T002',
-  'KT'
-from
-  users
-where
-  email = 'teacher.b@example.com',
-select
-  id,
-  'T003',
-  'H'
-from
-  users
-where
-  email = 'teacher.c@example.com';
+-- teachers via INSERT ... SELECT using UNION ALL
+insert into teachers (user_id, teacher_code, dept)
+select id, 'T001', 'CNTT' from users where email = 'teacher.a@example.com'
+UNION ALL
+select id, 'T002', 'KT'   from users where email = 'teacher.b@example.com'
+UNION ALL
+select id, 'T003', 'H'    from users where email = 'teacher.c@example.com';
 
-insert into
-  students (user_id, student_code, faculty, class_name)
-select
-  id,
-  'S001',
-  'CNTT',
-  'K66-CNTT1'
-from
-  users
-where
-  email = 'student.a@example.com',
-select
-  id,
-  'S002',
-  'CNTT',
-  'K66-KTPM3'
-from
-  users
-where
-  email = 'student.b@example.com',
-select
-  id,
-  'S003',
-  'KT',
-  'K66-TCNH1'
-from
-  users
-where
-  email = 'student.c@example.com';
+-- students via INSERT ... SELECT using UNION ALL
+insert into students (user_id, student_code, faculty, class_name)
+select id, 'S001', 'CNTT', 'K66-CNTT1' from users where email = 'student.a@example.com'
+UNION ALL
+select id, 'S002', 'CNTT', 'K66-KTPM3' from users where email = 'student.b@example.com'
+UNION ALL
+select id, 'S003', 'KT',   'K66-TCNH1' from users where email = 'student.c@example.com';
 
-insert into
-  courses (code, name, credits)
-values
+-- courses
+insert into courses (code, name, credits) values
   ('CSE100', 'Nhập môn lập trình', 3),
   ('CSE200', 'Xác suất thống kê', 3),
-  ('CSE300', 'Lịch sử Đảng cộng sản Việt Nam', 2),
-insert into
-  class_sections (
-    course_id,
-    teacher_id,
-    term,
-    room,
-    capacity,
-    start_date,
-    end_date
-  )
+  ('CSE300', 'Lịch sử Đảng cộng sản Việt Nam', 2);
+
+-- class_sections (fix end_date for the third section)
+insert into class_sections (
+  course_id,
+  teacher_id,
+  term,
+  room,
+  capacity,
+  start_date,
+  end_date
+)
 select
   c.id,
   t.id,
@@ -389,16 +295,15 @@ where
   c.code = 'CSE100'
   and t.teacher_code = 'T001';
 
-insert into
-  class_sections (
-    course_id,
-    teacher_id,
-    term,
-    room,
-    capacity,
-    start_date,
-    end_date
-  )
+insert into class_sections (
+  course_id,
+  teacher_id,
+  term,
+  room,
+  capacity,
+  start_date,
+  end_date
+)
 select
   c.id,
   t.id,
@@ -414,16 +319,15 @@ where
   c.code = 'CSE200'
   and t.teacher_code = 'T002';
 
-insert into
-  class_sections (
-    course_id,
-    teacher_id,
-    term,
-    room,
-    capacity,
-    start_date,
-    end_date
-  )
+insert into class_sections (
+  course_id,
+  teacher_id,
+  term,
+  room,
+  capacity,
+  start_date,
+  end_date
+)
 select
   c.id,
   t.id,
@@ -431,7 +335,7 @@ select
   'B2-313',
   60,
   '2026-01-10',
-  '2025-04-02'
+  '2026-04-02'
 from
   courses c,
   teachers t
@@ -439,14 +343,8 @@ where
   c.code = 'CSE300'
   and t.teacher_code = 'T003';
 
-insert into
-  schedules (
-    class_section_id,
-    weekday,
-    start_time,
-    end_time,
-    recurring_flag
-  )
+-- schedules: join class_sections to courses to filter by course code
+insert into schedules (class_section_id, weekday, start_time, end_time, recurring_flag)
 select
   cs.id,
   2,
@@ -455,17 +353,11 @@ select
   1
 from
   class_sections cs
+  join courses c on cs.course_id = c.id
 where
-  cs.course_id = 'CSE100';
+  c.code = 'CSE100';
 
-insert into
-  schedules (
-    class_section_id,
-    weekday,
-    start_time,
-    end_time,
-    recurring_flag
-  )
+insert into schedules (class_section_id, weekday, start_time, end_time, recurring_flag)
 select
   cs.id,
   2,
@@ -474,17 +366,11 @@ select
   1
 from
   class_sections cs
+  join courses c on cs.course_id = c.id
 where
-  cs.course_id = 'CSE200';
+  c.code = 'CSE200';
 
-insert into
-  schedules (
-    class_section_id,
-    weekday,
-    start_time,
-    end_time,
-    recurring_flag
-  )
+insert into schedules (class_section_id, weekday, start_time, end_time, recurring_flag)
 select
   cs.id,
   5,
@@ -493,44 +379,33 @@ select
   1
 from
   class_sections cs
-where
-  cs.course_id = 'CSE300';
-
-insert into
-  class_section_students (class_section_id, student_id)
-select
-  cs.id,
-  s.id
-from
-  class_sections cs
   join courses c on cs.course_id = c.id
-  join students s on s.student_code in ('S001')
-where
-  c.code = 'CSE100' -- mã môn học hoặc mã lớp
-union all
-select
-  cs.id,
-  s.id
-from
-  class_sections cs
-  join courses c on cs.course_id = c.id
-  join students s on s.student_code in ('S001', 'S002', 'S003')
-where
-  c.code = 'CSE200';
-
-union all
-select
-  cs.id,
-  s.id
-from
-  class_sections cs
-  join courses c on cs.course_id = c.id
-  join students s on s.student_code in ('S002', 'S003')
 where
   c.code = 'CSE300';
 
--- ========================================
--- ✅ Hoàn tất
--- ========================================
-select
-  '✅ Database attendance đã được khởi tạo thành công!' as Result;
+-- class_section_students: structured, explicit joins + UNION ALL
+insert into class_section_students (class_section_id, student_id)
+select cs.id, s.id
+from class_sections cs
+join courses c on cs.course_id = c.id
+join students s on 1=1
+where c.code = 'CSE100' and s.student_code in ('S001')
+UNION ALL
+select cs.id, s.id
+from class_sections cs
+join courses c on cs.course_id = c.id
+join students s on 1=1
+where c.code = 'CSE200' and s.student_code in ('S001', 'S002', 'S003')
+UNION ALL
+select cs.id, s.id
+from class_sections cs
+join courses c on cs.course_id = c.id
+join students s on 1=1
+where c.code = 'CSE300' and s.student_code in ('S002', 'S003');
+
+-- final message
+select '✅ Database attendance đã được khởi tạo thành công!' as Result;
+
+SELECT * from students;
+SELECT * FROM users;
+

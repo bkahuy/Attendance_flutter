@@ -2,27 +2,39 @@ import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/config.dart';
 
-class Api {
-  static final Api I = Api._();
-  final Dio dio = Dio(BaseOptions(
-      baseUrl: '$kBaseUrl/api',
+class ApiClient {
+  static final ApiClient _i = ApiClient._internal();
+  factory ApiClient() => _i;
+  ApiClient._internal();
 
-      connectTimeout: Duration(seconds: 15),
-      receiveTimeout: Duration(seconds: 30),
-      headers: {'Accept': 'application/json'}));
-  Api._() {
-    dio.interceptors.add(InterceptorsWrapper(onRequest: (o, h) async {
-      final p = await SharedPreferences.getInstance();
-      final t = p.getString('jwt');
-      if (t != null && t.isNotEmpty) o.headers['Authorization'] = 'Bearer $t';
-      h.next(o);
-    }, onError: (e, h) async {
-      if (e.response?.statusCode == 401) {
-        final p = await SharedPreferences.getInstance();
-        await p.remove('jwt');
-        await p.remove('role');
-      }
-      h.next(e);
-    }));
+  late final Dio dio;
+
+  Future<void> init() async {
+    dio = Dio(BaseOptions(
+      baseUrl: AppConfig.BASE_URL,
+      connectTimeout: const Duration(seconds: 10),
+      receiveTimeout: const Duration(seconds: 20),
+      headers: {'Accept': 'application/json'},
+    ));
+
+    dio.interceptors.add(InterceptorsWrapper(
+      onRequest: (options, handler) async {
+        final prefs = await SharedPreferences.getInstance();
+        final token = prefs.getString('token');
+        if (token != null && token.isNotEmpty) {
+          options.headers['Authorization'] = 'Bearer $token';
+        }
+        handler.next(options);
+      },
+      onError: (e, handler) async {
+        if (e.response?.statusCode == 401) {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.remove('token');
+          await prefs.remove('user_role');
+          await prefs.remove('user_name');
+        }
+        handler.next(e);
+      },
+    ));
   }
 }

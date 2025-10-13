@@ -2,51 +2,38 @@
 <html lang="vi">
 <head>
     <meta charset="utf-8">
+    <title>@yield('title','Dashboard')</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ $title ?? 'Attendance Admin' }}</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body { background:#f6f7fb; }
-        .navbar-brand { font-weight:700; }
-        .card { border:0; box-shadow:0 6px 20px rgba(0,0,0,.05); }
+        :root{--bg:#f6f7fb;--card:#fff;--text:#111827;--muted:#6b7280;--brand:#111827;--chip:#e5e7eb}
+        body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);margin:0;color:var(--text)}
+        header{background:var(--brand);color:#fff;padding:14px 16px;display:flex;justify-content:space-between;align-items:center}
+        main{max-width:1100px;margin:24px auto;background:var(--card);border-radius:12px;padding:24px;box-shadow:0 10px 30px rgba(0,0,0,.06)}
+        .chip{display:inline-block;background:var(--chip);border-radius:999px;padding:4px 10px;font-size:12px;margin-left:8px}
+        .row{display:flex;gap:16px;flex-wrap:wrap}
+        .card{flex:1 1 320px;border:1px solid #e5e7eb;border-radius:12px;padding:16px}
+        button{padding:8px 12px;border:0;border-radius:8px;background:#111827;color:#fff;cursor:pointer}
+        a.btn{display:inline-block;text-decoration:none;padding:8px 12px;border-radius:8px;background:#111827;color:#fff}
+        table{width:100%;border-collapse:collapse}
+        th,td{border-bottom:1px solid #e5e7eb;padding:8px;text-align:left;font-size:14px}
     </style>
 </head>
 <body>
-<nav class="navbar navbar-expand-lg bg-white shadow-sm">
-    <div class="container">
-        <a class="navbar-brand" href="{{ route('dashboard') }}">Attendance Admin</a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#topnav">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div id="topnav" class="collapse navbar-collapse">
-            <ul class="navbar-nav me-auto">
-                <li class="nav-item"><a class="nav-link" href="{{ route('users.index') }}">Users</a></li>
-                <li class="nav-item"><a class="nav-link" href="{{ route('courses.index') }}">Courses</a></li>
-                <li class="nav-item"><a class="nav-link" href="{{ route('class-sections.index') }}">Class Sections</a></li>
-            </ul>
-            <form method="POST" action="{{ route('logout') }}">
+<header>
+    <div><strong>Attendance Admin</strong></div>
+    <div>
+        @auth('web')
+            {{ auth('web')->user()->name }}
+            <span class="chip">{{ auth('web')->user()->role }}</span>
+            <form method="POST" action="{{ route('logout') }}" style="display:inline;margin-left:10px">
                 @csrf
-                <button class="btn btn-outline-danger btn-sm">Đăng xuất</button>
+                <button type="submit">Đăng xuất</button>
             </form>
-        </div>
+        @endauth
     </div>
-</nav>
-
-<main class="container my-4">
-    @if(session('ok'))
-        <div class="alert alert-success">{{ session('ok') }}</div>
-    @endif
-    @if($errors->any())
-        <div class="alert alert-danger">
-            <ul class="mb-0">
-                @foreach($errors->all() as $e)<li>{{ $e }}</li>@endforeach
-            </ul>
-        </div>
-    @endif
-
+</header>
+<main>
     @yield('content')
 </main>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
