@@ -3,7 +3,7 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
-use App\Models\{Schedule, AttendanceSession, ClassSection};
+use App\Models\{ViewTeacherSchedule, AttendanceSession, ClassSection};
 use Carbon\Carbon;
 
 class AutoOpenAttendance extends Command{
@@ -11,7 +11,7 @@ class AutoOpenAttendance extends Command{
   protected $description='Auto create attendance sessions based on schedules when time comes';
   public function handle(): int{
     $now=Carbon::now(); $weekday=$now->dayOfWeek; $created=0;
-    $recur = Schedule::where('recurring_flag',1)->where('weekday',$weekday)->get();
+    $recur = ViewTeacherSchedule::where('recurring_flag',1)->where('weekday',$weekday)->get();
     foreach($recur as $sch){
       $start = Carbon::parse($now->format('Y-m-d').' '.$sch->start_time);
       $end   = Carbon::parse($now->format('Y-m-d').' '.$sch->end_time);
@@ -29,7 +29,7 @@ class AutoOpenAttendance extends Command{
         'status'=>'active',
       ]); $created++; }
     }
-    $one = Schedule::where('recurring_flag',0)->whereDate('date',$now->toDateString())->get();
+    $one = ViewTeacherSchedule::where('recurring_flag',0)->whereDate('date',$now->toDateString())->get();
     foreach($one as $sch){
       $start = Carbon::parse($sch->date.' '.$sch->start_time); $end = Carbon::parse($sch->date.' '.$sch->end_time);
       if (abs($now->diffInMinutes($start,false))>2) continue;
