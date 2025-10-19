@@ -33,7 +33,7 @@ class TeacherController extends Controller
         if (!$teacherUserId) {
             return response()->json(['error' => 'NO_TEACHER_USER_ID'], 422);
         }
-
+//khong duong sua
         try {
             // Query thẳng (tương đương SP sp_teacher_daily_schedule)
             $rows = DB::select("
