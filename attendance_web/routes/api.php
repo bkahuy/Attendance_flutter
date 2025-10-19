@@ -13,6 +13,7 @@ Route::prefix('auth')->group(function(){
 
 // Teacher-only APIs
 Route::middleware(['auth:api','role:teacher'])->group(function(){
+    Route::get('teacher/schedule',[TeacherController::class,'schedule']);
     Route::post('attendance/session',[TeacherController::class,'createSession']);
     Route::get('attendance/session/{id}',[TeacherController::class,'sessionDetail']);
     Route::get('stats/class/{id}',[StatsController::class,'classStats']);
