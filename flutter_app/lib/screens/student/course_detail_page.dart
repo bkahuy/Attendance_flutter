@@ -14,9 +14,9 @@ class CourseDetailPage extends StatefulWidget {
 class _CourseDetailPageState extends State<CourseDetailPage> {
   // Dữ liệu giả lập, sau này bạn sẽ gọi API để lấy dữ liệu thật
   final List<Map<String, dynamic>> _sessions = [
-    {'date': '2025-09-10', 'status': 'present'},
-    {'date': '2025-09-11', 'status': 'pending'},
-    {'date': '2025-09-13', 'status': 'future'},
+    {'date': '2025-10-13', 'status': 'present'},
+    {'date': '2025-10-17', 'status': 'pending'},
+    {'date': '2025-10-20', 'status': 'future'},
   ];
 
   @override
