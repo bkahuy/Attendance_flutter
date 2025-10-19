@@ -13,19 +13,61 @@ use Illuminate\Support\Carbon;
 
 class TeacherController extends Controller
 {
-    public function schedule(Request $r)
+    public function scheduleByDate(Request $r)
     {
-        $date = $r->query('date');
-        $user = auth('api')->user();
-        $teacher = Teacher::where('user_id',$user->id)->firstOrFail();
-// Lấy lịch theo ngày: one-off hoặc recurring theo weekday
-        $weekday = Carbon::parse($date ?? now())->dayOfWeek; // 0=Sun..6=Sat
-        return ClassSection::with(['course'])
-            ->where('teacher_id',$teacher->id)
-            ->whereHas('schedules', function($q) use($date,$weekday){
-                $q->where(function($qq) use($date){ $qq->where('recurring_flag',0)->whereDate('date',$date); })
-                    ->orWhere(function($qq) use($weekday){ $qq->where('recurring_flag',1)->where('weekday',$weekday); });
-            })->get();
+        $date = $req->query('date', now()->toDateString()); // YYYY-MM-DD
+
+        // Lấy user id từ JWT guard 'api'. Nếu dev chưa có JWT, cho phép ?teacher_user_id=
+        $teacherUserId = auth('api')->id() ?? (int) $req->query('teacher_user_id', 0);
+        if (!$teacherUserId) {
+            return response()->json(['error' => 'NO_TEACHER_USER_ID'], 422);
+        }
+//khong duong sua
+        try {
+            // Query thẳng (tương đương SP sp_teacher_daily_schedule)
+            $rows = DB::select("
+                SELECT sc.id AS class_section_id,
+                       c.code AS course_code,
+                       c.name AS course_name,
+                       sc.term,
+                       sc.room,
+                       sch.start_time,
+                       sch.end_time
+                FROM class_sections sc
+                JOIN teachers t     ON t.id = sc.teacher_id
+                JOIN users tu       ON tu.id = t.user_id
+                JOIN courses c      ON c.id = sc.course_id
+                JOIN schedules sch  ON sch.class_section_id = sc.id
+                WHERE tu.id = ?
+                  AND (
+                    (sch.recurring_flag = 0 AND sch.date = ?)
+                    OR
+                    (sch.recurring_flag = 1 AND sch.weekday = WEEKDAY(?))
+                  )
+                ORDER BY sch.start_time
+            ", [$teacherUserId, $date, $date]);
+
+            // Map ra đúng key Flutter đang đọc
+            $data = array_map(function ($r) {
+                return [
+                    'class_section_id' => (int) $r->class_section_id,
+                    'course_code'      => (string) $r->course_code,
+                    'course_name'      => (string) $r->course_name,
+                    'term'             => (string) ($r->term ?? ''),
+                    'room'             => (string) ($r->room ?? ''),
+                    'start_time'       => (string) $r->start_time, // HH:MM:SS
+                    'end_time'         => (string) $r->end_time,   // HH:MM:SS
+                    // 'period'        => 'T 2–3', // nếu muốn server đẩy luôn
+                    // 'status'        => 'next',
+                    // 'groups'        => 'K66-CNTT1',
+                ];
+            }, $rows);
+
+            return response()->json($data);
+        } catch (\Throwable $e) {
+            Log::error('[teacher.schedule] ' . $e->getMessage(), ['date' => $date, 'uid' => $teacherUserId]);
+            return response()->json(['error' => 'SERVER_ERROR', 'hint' => $e->getMessage()], 500);
+        }
     }
 
 
