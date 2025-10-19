@@ -22,10 +22,12 @@ Route::middleware(['auth:api','role:teacher'])->group(function(){
 
 // Student-only APIs
 Route::middleware(['auth:api','role:student'])->group(function(){
-    Route::get('student/schedule',[StudentController::class,'scheduleByDate']);
+    // Sửa lại cho đúng
+    Route::get('/student/schedule', [StudentController::class, 'schedule']);
     Route::post('attendance/checkin',[StudentController::class,'checkIn']);
     Route::get('stats/student',[StatsController::class,'studentOverview']);
     Route::get('attendance/resolve-qr',[QrController::class,'resolve']);
+    Route::get('/student/class-sections/{id}/attendance', [StudentController::class, 'attendanceHistory']);
 });
 
 //Nhan dien khuon mat

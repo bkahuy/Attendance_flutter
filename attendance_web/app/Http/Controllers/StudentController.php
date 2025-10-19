@@ -135,25 +135,23 @@ class StudentController extends Controller
         $user = auth('api')->user();
         $student = Student::where('user_id', $user->id)->firstOrFail();
 
-        // Lấy tất cả các buổi điểm danh của lớp học phần này
+        // Lấy tất cả các buổi điểm danh đã được tạo cho lớp này
         $sessions = AttendanceSession::where('class_section_id', $classSectionId)
-            ->orderBy('start_at', 'asc') // Sắp xếp các buổi học theo thứ tự
+            ->orderBy('start_at', 'asc') // Sắp xếp các buổi học theo thứ tự thời gian
             ->get();
 
-        // Biến đổi dữ liệu để trả về cho client
+        // Biến đổi dữ liệu để trả về cho Flutter
         $history = $sessions->map(function ($session) use ($student) {
-            // Tìm bản ghi điểm danh tương ứng của sinh viên
-            $record = AttendanceRecord::where('attendance_session_id', $session->id)
-                ->where('student_id', $student->id)
-                ->first();
+            // Tìm bản ghi điểm danh của sinh viên trong buổi học này
+            $record = $session->records()->where('student_id', $student->id)->first();
 
-            $status = 'pending'; // Trạng thái mặc định
+            $status = 'pending'; // Trạng thái mặc định là chưa có dữ liệu
 
             if ($record) {
                 // Nếu có bản ghi, lấy trạng thái từ đó (present, late, absent)
                 $status = $record->status;
             } elseif (now()->gt($session->end_at)) {
-                // Nếu không có bản ghi và buổi học đã kết thúc -> vắng
+                // Nếu không có bản ghi và buổi học đã qua -> Vắng
                 $status = 'absent';
             } elseif (now()->between($session->start_at, $session->end_at)) {
                 // Nếu đang trong giờ học mà chưa điểm danh -> có thể điểm danh
@@ -162,7 +160,7 @@ class StudentController extends Controller
 
             return [
                 'session_id' => $session->id,
-                'date' => $session->start_at->toIso8601String(), // Trả về ngày giờ chuẩn
+                'date' => $session->start_at->toIso8601String(), // Trả về ngày giờ theo chuẩn quốc tế
                 'status' => $status,
             ];
         });
