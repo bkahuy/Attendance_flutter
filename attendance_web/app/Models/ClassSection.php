@@ -17,7 +17,7 @@ class ClassSection extends Model
 
     public function course(): BelongsTo { return $this->belongsTo(Course::class); }
     public function teacher(): BelongsTo { return $this->belongsTo(Teacher::class); }
-    public function schedules(): HasMany { return $this->hasMany(ViewTeacherSchedule::class); }
+    public function schedules(): HasMany { return $this->hasMany(Schedule::class); }
     public function sessions(): HasMany { return $this->hasMany(AttendanceSession::class); }
     public function students(): BelongsToMany { return $this->belongsToMany(Student::class, 'class_section_students'); }
 }

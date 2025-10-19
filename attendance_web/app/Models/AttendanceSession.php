@@ -20,7 +20,7 @@ class AttendanceSession extends Model
 
 
     public function classSection(): BelongsTo { return $this->belongsTo(ClassSection::class); }
-    public function schedule(): BelongsTo { return $this->belongsTo(ViewTeacherSchedule::class); }
+    public function schedule(): BelongsTo { return $this->belongsTo(Schedule::class); }
     public function creator(): BelongsTo { return $this->belongsTo(User::class, 'created_by'); }
     public function records(): HasMany { return $this->hasMany(AttendanceRecord::class); }
 
