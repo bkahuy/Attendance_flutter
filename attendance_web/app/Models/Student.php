@@ -19,4 +19,11 @@ class Student extends Model
     public function user(): BelongsTo { return $this->belongsTo(User::class); }
     public function classes(): BelongsToMany { return $this->belongsToMany(ClassSection::class, 'class_section_students'); }
     public function records(): HasMany { return $this->hasMany(AttendanceRecord::class); }
+
+    public function classSections()
+    {
+        return $this->belongsToMany(\App\Models\ClassSection::class, 'class_section_students', 'student_id', 'class_section_id')
+            ->withPivot('enrolled_at');
+    }
+
 }

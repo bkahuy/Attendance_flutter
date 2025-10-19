@@ -38,7 +38,7 @@ class ApiClient {
     ));
   }
 
-  Future get(String s) async {}
-
-
+  Future<Response> get(String path) async {
+    return dio.get(path);
+  }
 }
