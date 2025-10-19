@@ -18,12 +18,15 @@ Route::middleware(['auth:api','role:teacher'])->group(function(){
     Route::get('attendance/session/{id}',[AttendanceController::class,'sessionDetail']);
     Route::get('stats/class/{id}',[StatsController::class,'classStats']);
     Route::get('stats/session/{id}',[StatsController::class,'sessionStats']);
+
 });
 
 // Student-only APIs
 Route::middleware(['auth:api','role:student'])->group(function(){
-    Route::get('student/schedule',[StudentController::class,'scheduleByDate']);
+    // Sửa 'scheduleByDate' thành 'schedule'
+    Route::get('/student/schedule', [StudentController::class, 'schedule']);
     Route::post('attendance/checkin',[AttendanceController::class,'checkIn']);
     Route::get('stats/student',[StatsController::class,'studentOverview']);
     Route::get('attendance/resolve-qr',[QrController::class,'resolve']);
+    Route::get('/student/class-sections/{id}/attendance', [StudentController::class, 'attendanceHistory']);
 });

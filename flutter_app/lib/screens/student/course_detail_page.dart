@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'qr_scan_page.dart';
 import 'package:intl/intl.dart';
 
 class CourseDetailPage extends StatefulWidget {
+  // Trang này nhận dữ liệu của môn học được bấm vào
   final Map<String, dynamic> course;
 
   const CourseDetailPage({super.key, required this.course});
@@ -12,112 +12,111 @@ class CourseDetailPage extends StatefulWidget {
 }
 
 class _CourseDetailPageState extends State<CourseDetailPage> {
-  int currentIndex = 0;
+  // Dữ liệu giả lập, sau này bạn sẽ gọi API để lấy dữ liệu thật
+  final List<Map<String, dynamic>> _sessions = [
+    {'date': '2025-09-10', 'status': 'present'},
+    {'date': '2025-09-11', 'status': 'pending'},
+    {'date': '2025-09-13', 'status': 'future'},
+  ];
 
   @override
   Widget build(BuildContext context) {
+    // Lấy thông tin từ dữ liệu được truyền vào
+    final courseName = widget.course['course_name'] ?? 'Tên môn học';
+    final className = widget.course['class_name'] ?? 'Tên lớp';
+    final courseCode = widget.course['course_code'] ?? 'Mã môn';
+
     return Scaffold(
-      body: IndexedStack(
-        index: currentIndex,
-        children: [
-          _buildCourseDetail(),
-          const Center(child: Text("Trang QR (sẽ mở riêng)")),
-          const Center(child: Text("Cài đặt (đang phát triển...)")),
-        ],
+      appBar: AppBar(
+        leading: const BackButton(color: Colors.black),
+        title: const Text('Trang chủ', style: TextStyle(color: Colors.black)),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
       ),
-      bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
-          color: Color(0xFF9C8CFC),
-        ),
-        child: BottomNavigationBar(
-          currentIndex: currentIndex,
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          selectedItemColor: Colors.black,
-          unselectedItemColor: Colors.black54,
-          type: BottomNavigationBarType.fixed,
-          onTap: (index) async {
-            if (index == 1) {
-              // Khi nhấn icon QR → mở trang quét riêng biệt
-              await Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const QrScanPage()),
-              );
-            } else {
-              setState(() => currentIndex = index);
-            }
-          },
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home_outlined),
-              label: '',
+      body: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 20),
+            // Thẻ thông tin chính
+            Card(
+              elevation: 4.0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      '$courseCode ${courseName.toUpperCase()}',
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Lớp: $className',
+                      style: TextStyle(fontSize: 16, color: Colors.grey[700]),
+                    ),
+                    const Divider(height: 32),
+                    // Danh sách các buổi học
+                    ..._sessions.map((session) => _buildSessionRow(session)).toList(),
+                  ],
+                ),
+              ),
             ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.qr_code_2_outlined),
-              label: '',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.settings_outlined),
-              label: '',
-            ),
+            const SizedBox(height: 30),
+            // Thống kê điểm danh
+            Text('Số buổi đã điểm danh: 1/${_sessions.length}', style: const TextStyle(fontSize: 16)),
+            const SizedBox(height: 8),
+            Text('Tổng số buổi: ${_sessions.length}', style: const TextStyle(fontSize: 16)),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildCourseDetail() {
-    final course = widget.course;
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(course['course_name'] ?? 'Chi tiết môn học'),
-        backgroundColor: Colors.deepPurple,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              course['course_name'] ?? '',
-              style: const TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
+  // Widget con để hiển thị một hàng (buổi học)
+  Widget _buildSessionRow(Map<String, dynamic> session) {
+    final date = DateTime.parse(session['date']);
+    final formattedDate = DateFormat("EEEE - dd/MM/yy", "vi_VN").format(date);
+    final status = session['status'];
+
+    Widget statusWidget;
+    switch (status) {
+      case 'present':
+        statusWidget = const Text('Có mặt', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold));
+        break;
+      case 'pending':
+        statusWidget = const Text('?', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18));
+        break;
+      default: // 'future'
+        statusWidget = GestureDetector(
+          onTap: () {
+            // TODO: Mở màn hình quét QR để điểm danh
+          },
+          child: const Text(
+            'ĐIỂM DANH',
+            style: TextStyle(
+              color: Colors.red,
+              fontWeight: FontWeight.bold,
+              decoration: TextDecoration.underline,
+              decorationColor: Colors.red,
             ),
-            const SizedBox(height: 8),
-            Text("Lớp: ${course['class_name'] ?? '--'}",
-                style: const TextStyle(fontSize: 16)),
-            Text("Phòng học: ${course['room'] ?? '--'}",
-                style: const TextStyle(fontSize: 16)),
-            const SizedBox(height: 8),
-            Text(
-              "Thời gian: ${course['start_time'] ?? '--'} - ${course['end_time'] ?? '--'}",
-              style: const TextStyle(fontSize: 16),
-            ),
-            const SizedBox(height: 30),
-            Center(
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const QrScanPage()),
-                  );
-                },
-                icon: const Icon(Icons.qr_code_2_outlined),
-                label: const Text("Điểm danh bằng QR"),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.deepPurple,
-                  foregroundColor: Colors.white,
-                  padding:
-                  const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  textStyle: const TextStyle(fontSize: 18),
-                ),
-              ),
-            ),
-          ],
-        ),
+          ),
+        );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            toBeginningOfSentenceCase(formattedDate) ?? '',
+            style: TextStyle(fontSize: 16, color: Colors.grey[800]),
+          ),
+          statusWidget,
+        ],
       ),
     );
   }

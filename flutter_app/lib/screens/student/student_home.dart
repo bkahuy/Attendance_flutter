@@ -6,6 +6,7 @@ import '../../models/user.dart';
 import 'qr_scan_page.dart';
 import 'package:intl/intl.dart';
 import 'course_detail_page.dart';
+import '../setting_page.dart';
 
 class StudentHome extends StatefulWidget {
   final AppUser user;
@@ -17,7 +18,8 @@ class StudentHome extends StatefulWidget {
 
 class _StudentHomeState extends State<StudentHome> {
   DateTime selectedDate = DateTime.now();
-  int currentIndex = 0;
+  // Biến này giờ chỉ dùng để xác định icon nào đang được chọn (luôn là Home)
+  final int currentIndex = 0;
 
   // 🔹 Lấy danh sách thứ trong tuần
   List<DateTime> getWeekDays(DateTime base) {
@@ -81,15 +83,8 @@ class _StudentHomeState extends State<StudentHome> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        // 🟢 Không để QrScanPage trong IndexedStack nữa
-        child: IndexedStack(
-          index: currentIndex,
-          children: [
-            _buildHomePage(weekDays, daysLabel),
-            const Center(child: Text("Trang QR (sẽ mở riêng)")),
-            const Center(child: Text("Cài đặt (đang phát triển...)")),
-          ],
-        ),
+        // 👇 2. BỎ INDEXEDSTACK, chỉ hiển thị trang home
+        child: _buildHomePage(weekDays, daysLabel),
       ),
 
       // 🔹 Thanh điều hướng dưới cùng
@@ -104,16 +99,23 @@ class _StudentHomeState extends State<StudentHome> {
           selectedItemColor: Colors.black,
           unselectedItemColor: Colors.black54,
           type: BottomNavigationBarType.fixed,
+          // 👇 3. SỬA LẠI HOÀN TOÀN LOGIC ONTAP
           onTap: (index) async {
+            // Nếu nhấn vào icon QR (vị trí 1)
             if (index == 1) {
-              // 👉 Khi nhấn icon QR → mở trang quét riêng biệt
               await Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const QrScanPage()),
               );
-            } else {
-              setState(() => currentIndex = index);
             }
+            // Nếu nhấn vào icon Cài đặt (vị trí 2)
+            else if (index == 2) {
+              await Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const SettingsPage()),
+              );
+            }
+            // Nếu nhấn vào Home (vị trí 0), không làm gì cả
           },
           items: const [
             BottomNavigationBarItem(
@@ -134,6 +136,7 @@ class _StudentHomeState extends State<StudentHome> {
     );
   }
 
+  // Hàm _buildHomePage không có gì thay đổi
   Widget _buildHomePage(List<DateTime> weekDays, List<String> daysLabel) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -201,7 +204,6 @@ class _StudentHomeState extends State<StudentHome> {
           ),
         ),
 
-        // 🔹 Thanh tiêu đề ngày hiện tại
         // 🔹 Thanh tiêu đề ngày hiện tại
         Container(
           color: Colors.purple.shade50,
