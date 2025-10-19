@@ -16,7 +16,6 @@ class _CreateSessionPageState extends State<CreateSessionPage> {
   Widget build(BuildContext context) {
     final s = widget.schedule;
     final course = s['course_name'] ?? '—';
-    final period = s['period'] ?? '—';
     final room = s['room'] ?? '—';
 
     return Scaffold(
@@ -46,7 +45,6 @@ class _CreateSessionPageState extends State<CreateSessionPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('Môn: $course'),
-                    Text('Tiết: $period'),
                     Text('Phòng: $room'),
                   ],
                 ),

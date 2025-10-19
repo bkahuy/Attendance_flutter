@@ -24,7 +24,7 @@ class TeacherController extends Controller
      *   { class_section_id, course_code, course_name, term, room, start_time, end_time }
      * ]
      */
-    public function scheduleByDate(Request $req)
+    public function schedule(Request $req)
     {
         $date = $req->query('date', now()->toDateString()); // YYYY-MM-DD
 
