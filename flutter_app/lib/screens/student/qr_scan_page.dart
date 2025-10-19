@@ -1,11 +1,12 @@
-// qr_scan_page.dart
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import '../../services/attendance_service.dart';
 import 'student_checkin_page.dart';
 
 class QrScanPage extends StatefulWidget {
-  const QrScanPage({super.key});
+  final bool returnData; // thêm để kiểm soát chế độ trả kết quả
+
+  const QrScanPage({super.key, this.returnData = false});
 
   @override
   State<QrScanPage> createState() => _QrScanPageState();
@@ -31,13 +32,16 @@ class _QrScanPageState extends State<QrScanPage> {
       final uri = Uri.tryParse(barcode);
       String? token = uri?.queryParameters['token'] ?? barcode;
 
-      final data = await AttendanceService().resolveQr(token);
-      if (!mounted) return;
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (_) => StudentCheckinPage(session: data),
-        ),
-      );
+      if (widget.returnData) {
+        // Trả kết quả về CourseDetailPage
+        Navigator.pop(context, token);
+      } else {
+        final data = await AttendanceService().resolveQr(token);
+        if (!mounted) return;
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => StudentCheckinPage(session: data)),
+        );
+      }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
