@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:intl/intl.dart'; // Import thư viện intl
 import '../../services/attendance_service.dart';
 
 class StudentCheckinPage extends StatefulWidget {
@@ -13,18 +14,32 @@ class StudentCheckinPage extends StatefulWidget {
 }
 
 class _StudentCheckinPageState extends State<StudentCheckinPage> {
-  String status = 'present';
+  // Đổi status từ Dropdown thành Radio button
+  // Giá trị có thể là 'Có mặt', 'Muộn', 'Vắng'
+  String? status;
   String password = '';
   File? photo;
   Position? pos;
   bool sending = false;
 
   Future<void> _pickPhoto() async {
+    // Chức năng chụp ảnh vẫn được giữ lại để sử dụng ở logic nền
     final picker = ImagePicker();
     final img = await picker.pickImage(source: ImageSource.camera, maxWidth: 1280, imageQuality: 85);
-    if (img != null) setState(() => photo = File(img.path));
+    if (img != null) {
+      setState(() {
+        photo = File(img.path);
+      });
+    }
   }
-
+  @override
+  void initState() {
+    super.initState();
+    // Nếu đã có ảnh truyền sẵn từ CourseDetailPage, gán luôn
+    if (widget.session['photo_path'] != null) {
+      photo = File(widget.session['photo_path']);
+    }
+  }
   Future<void> _getLocation() async {
     final enabled = await Geolocator.isLocationServiceEnabled();
     if (!enabled) { await Geolocator.openLocationSettings(); return; }
@@ -39,85 +54,243 @@ class _StudentCheckinPageState extends State<StudentCheckinPage> {
   }
 
   Future<void> _submit() async {
+    if (status == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Vui lòng chọn trạng thái điểm danh')),
+      );
+      return;
+    }
+
+    // Ánh xạ lại giá trị để gửi đi
+    String statusValue;
+    switch (status) {
+      case 'Có mặt':
+        statusValue = 'present';
+        break;
+      case 'Muộn':
+        statusValue = 'late';
+        break;
+      case 'Vắng':
+        statusValue = 'absent';
+        break;
+      default:
+        statusValue = 'present';
+    }
+
+    // 👉 Chỉ chụp ảnh nếu chưa có
+    if (photo == null) {
+      await _pickPhoto();
+      if (photo == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Bạn chưa chụp ảnh xác nhận')),
+        );
+        return;
+      }
+    }
+
+    await _getLocation();
+
     setState(() => sending = true);
     try {
       await AttendanceService().checkIn(
         sessionId: widget.session['session_id'] as int,
-        status: status,
+        status: statusValue,
         password: password.isEmpty ? null : password,
         lat: pos?.latitude,
         lng: pos?.longitude,
         photoFile: photo,
       );
+
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Điểm danh thành công!')));
-      Navigator.of(context).popUntil((r) => r.isFirst);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Điểm danh thành công!')),
+      );
+
+      // ✅ Trở về trang chi tiết môn học và cập nhật trạng thái
+      Navigator.of(context).pop({
+        'checkedIn': true,
+        'status': status,
+      });
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lỗi điểm danh: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Lỗi điểm danh: $e')),
+      );
     } finally {
       if (mounted) setState(() => sending = false);
     }
   }
 
+
+
+  // Widget riêng cho các lựa chọn Radio
+  Widget _buildRadioOption(String title) {
+    return ListTile(
+      title: Text(title),
+      leading: Radio<String>(
+        value: title,
+        groupValue: status,
+        onChanged: (String? value) {
+          setState(() {
+            status = value;
+          });
+        },
+      ),
+      contentPadding: EdgeInsets.zero,
+      onTap: () {
+        setState(() {
+          status = title;
+        });
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final s = widget.session;
+    final className = s['class_name'] ?? 'Lớp';
+    final courseName = s['course_name'] ?? 'Tên môn học';
+    final courseCode = s['course_code'] ?? 'Mã môn';
+    final sessionDate = DateTime.parse(s['date']);
+    final formattedDate = DateFormat("E dd/MM/yyyy", "vi_VN").format(sessionDate);
+    final photoName = photo == null ? '' : photo!.path.split('/').last;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Xác nhận điểm danh')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Text('Môn: ${s['course'] ?? ''}', style: const TextStyle(fontWeight: FontWeight.w600)),
-          const SizedBox(height: 4),
-          Text('Thời gian: ${s['start_at']} - ${s['end_at']}'),
-          const SizedBox(height: 12),
+      appBar: AppBar(
+        title: const Text('Máy ảnh'),
+      ),
 
-          const Text('Trạng thái'),
-          DropdownButton<String>(
-            value: status,
-            items: const [
-              DropdownMenuItem(value: 'present', child: Text('Có mặt')),
-              DropdownMenuItem(value: 'late', child: Text('Muộn')),
-              DropdownMenuItem(value: 'absent', child: Text('Vắng')),
-            ],
-            onChanged: (v) => setState(() => status = v!),
-          ),
+      // 🔹 Nội dung chính
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Card(
+          color: const Color(0xFFE0E0E0),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+          elevation: 0,
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Lớp $className',
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '$courseCode $courseName',
+                  style: TextStyle(fontSize: 16, color: Colors.grey[800]),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      formattedDate,
+                      style: TextStyle(fontSize: 16, color: Colors.grey[800]),
+                    ),
+                    Text(
+                      photoName,
+                      style: TextStyle(fontSize: 16, color: Colors.grey[800]),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
 
-          const SizedBox(height: 12),
-          TextField(
-            decoration: const InputDecoration(labelText: 'Password (nếu giảng viên yêu cầu)'),
-            onChanged: (v) => password = v,
-          ),
+                _buildRadioOption('Có mặt'),
+                _buildRadioOption('Muộn'),
+                _buildRadioOption('Vắng'),
 
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              ElevatedButton.icon(
-                onPressed: _pickPhoto,
-                icon: const Icon(Icons.photo_camera),
-                label: const Text('Chụp ảnh'),
-              ),
-              const SizedBox(width: 8),
-              if (photo != null) const Icon(Icons.check_circle, color: Colors.green),
-              const Spacer(),
-              ElevatedButton.icon(
-                onPressed: _getLocation,
-                icon: const Icon(Icons.my_location),
-                label: const Text('Lấy GPS'),
-              ),
-              const SizedBox(width: 8),
-              if (pos != null) const Icon(Icons.check_circle, color: Colors.green),
-            ],
+                const SizedBox(height: 16),
+                const Text(
+                  'Password:',
+                  style: TextStyle(fontSize: 16),
+                ),
+                const SizedBox(height: 8),
+                TextFormField(
+                  onChanged: (v) => password = v,
+                  obscureText: true,
+                  decoration: InputDecoration(
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8.0),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Center(
+                  child: ElevatedButton(
+                    onPressed: sending ? null : _submit,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: Colors.black,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+                    ),
+                    child: sending
+                        ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                        : const Text(
+                      'XÁC NHẬN',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
+        ),
+      ),
 
-          const SizedBox(height: 24),
-          FilledButton(
-            onPressed: sending ? null : _submit,
-            child: sending ? const CircularProgressIndicator() : const Text('Xác nhận điểm danh'),
-          ),
-        ],
+      // 🔹 Thêm thanh điều hướng dưới cùng (giống StudentHome)
+      bottomNavigationBar: Container(
+        decoration: const BoxDecoration(
+          color: Color(0xFF9C8CFC),
+        ),
+        child: BottomNavigationBar(
+          currentIndex: 0,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          selectedItemColor: Colors.black,
+          unselectedItemColor: Colors.black54,
+          type: BottomNavigationBarType.fixed,
+          onTap: (index) async {
+            if (index == 0) {
+              // Quay lại trang chính (StudentHome)
+              Navigator.popUntil(context, (route) => route.isFirst);
+            } else if (index == 1) {
+              // Trang QR
+              await Navigator.pushNamed(context, '/qr');
+            } else if (index == 2) {
+              // Trang Cài đặt
+              await Navigator.pushNamed(context, '/settings');
+            }
+          },
+          items: const [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.home_outlined),
+              label: '',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.qr_code_2_outlined),
+              label: '',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.settings_outlined),
+              label: '',
+            ),
+          ],
+        ),
       ),
     );
   }
+
 }
