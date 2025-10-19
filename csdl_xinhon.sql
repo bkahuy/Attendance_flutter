@@ -409,3 +409,160 @@ select '✅ Database attendance đã được khởi tạo thành công!' as Res
 SELECT * from students;
 SELECT * FROM users;
 
+-- =======================================================================================================================================================
+
+ALTER TABLE class_sections
+MODIFY COLUMN start_date DATE NOT NULL DEFAULT (CURDATE()),
+MODIFY COLUMN end_date DATE NOT NULL DEFAULT (DATE_ADD(CURDATE(), INTERVAL 9 WEEK));
+
+
+
+
+-- View lịch dạy của giảng viên
+CREATE OR REPLACE VIEW vw_teacher_schedule AS
+SELECT 
+  t.id AS teacher_id,
+  u.name AS teacher_name,
+  c.code AS course_code,
+  c.name AS course_name,
+  cs.term,
+  cs.room,
+  sch.weekday,
+  sch.start_time,
+  sch.end_time,
+  cs.start_date,
+  cs.end_date
+FROM teachers t
+JOIN users u ON u.id = t.user_id
+JOIN class_sections cs ON cs.teacher_id = t.id
+JOIN courses c ON c.id = cs.course_id
+JOIN schedules sch ON sch.class_section_id = cs.id;
+
+-- View lịch học của sinh viên
+CREATE OR REPLACE VIEW vw_student_schedule AS
+SELECT 
+  s.id AS student_id,
+  u.name AS student_name,
+  c.code AS course_code,
+  c.name AS course_name,
+  cs.term,
+  cs.room,
+  sch.weekday,
+  sch.start_time,
+  sch.end_time,
+  cs.start_date,
+  cs.end_date
+FROM students s
+JOIN users u ON u.id = s.user_id
+JOIN class_section_students css ON css.student_id = s.id
+JOIN class_sections cs ON cs.id = css.class_section_id
+JOIN courses c ON c.id = cs.course_id
+JOIN schedules sch ON sch.class_section_id = cs.id;
+
+
+
+
+
+-- test 
+SET @uid := (SELECT u.id FROM users u JOIN teachers t ON t.user_id=u.id WHERE t.teacher_code='T001' LIMIT 1);
+SELECT sc.id class_section_id, c.code, c.name, sch.weekday, sch.start_time, sch.end_time
+FROM class_sections sc
+JOIN teachers t ON t.id=sc.teacher_id
+JOIN users    u ON u.id=t.user_id
+JOIN courses  c ON c.id=sc.course_id
+JOIN schedules sch ON sch.class_section_id=sc.id
+WHERE u.id=@uid
+  AND 
+    (sch.recurring_flag=1 AND sch.weekday=WEEKDAY(CURDATE())
+  )
+ORDER BY sch.start_time;
+
+SELECT CURDATE() AS today, WEEKDAY(CURDATE()) AS weekday_today; 
+
+
+-- T001 (CSE100) — Thứ 2 & Thứ 6: 07:55–09:40
+INSERT INTO schedules (class_section_id, weekday, start_time, end_time, recurring_flag)
+SELECT cs.id, 0, '07:55:00', '09:40:00', 1
+FROM class_sections cs
+JOIN courses  c ON c.id=cs.course_id
+JOIN teachers t ON t.id=cs.teacher_id
+WHERE c.code='CSE100' AND t.teacher_code='T001'
+AND NOT EXISTS (
+  SELECT 1 FROM schedules s
+  WHERE s.class_section_id=cs.id AND s.recurring_flag=1
+    AND s.weekday=0 AND s.start_time='07:55:00' AND s.end_time='09:40:00'
+);
+
+INSERT INTO schedules (class_section_id, weekday, start_time, end_time, recurring_flag)
+SELECT cs.id, 0, '09:45:00', '11:30:00', 1
+FROM class_sections cs
+JOIN courses  c ON c.id=cs.course_id
+JOIN teachers t ON t.id=cs.teacher_id
+WHERE c.code='CSE400' AND t.teacher_code='T001'
+AND NOT EXISTS (
+  SELECT 1 FROM schedules s
+  WHERE s.class_section_id=cs.id AND s.recurring_flag=1
+    AND s.weekday=0 AND s.start_time='09:45:00' AND s.end_time='11:30:00'
+);
+
+INSERT INTO schedules (class_section_id, weekday, start_time, end_time, recurring_flag)
+SELECT cs.id, 4, '07:55:00', '09:40:00', 1
+FROM class_sections cs
+JOIN courses  c ON c.id=cs.course_id
+JOIN teachers t ON t.id=cs.teacher_id
+WHERE c.code='CSE100' AND t.teacher_code='T001'
+AND NOT EXISTS (
+  SELECT 1 FROM schedules s
+  WHERE s.class_section_id=cs.id AND s.recurring_flag=1
+    AND s.weekday=4 AND s.start_time='07:55:00' AND s.end_time='09:40:00'
+);
+
+-- T002 (CSE200) — Thứ 3 & Thứ 5: 09:45–11:30
+INSERT INTO schedules (class_section_id, weekday, start_time, end_time, recurring_flag)
+SELECT cs.id, 1, '09:45:00', '11:30:00', 1
+FROM class_sections cs
+JOIN courses  c ON c.id=cs.course_id
+JOIN teachers t ON t.id=cs.teacher_id
+WHERE c.code='CSE200' AND t.teacher_code='T002'
+AND NOT EXISTS (
+  SELECT 1 FROM schedules s
+  WHERE s.class_section_id=cs.id AND s.recurring_flag=1
+    AND s.weekday=1 AND s.start_time='09:45:00' AND s.end_time='11:30:00'
+);
+
+INSERT INTO schedules (class_section_id, weekday, start_time, end_time, recurring_flag)
+SELECT cs.id, 3, '09:45:00', '11:30:00', 1
+FROM class_sections cs
+JOIN courses  c ON c.id=cs.course_id
+JOIN teachers t ON t.id=cs.teacher_id
+WHERE c.code='CSE200' AND t.teacher_code='T002'
+AND NOT EXISTS (
+  SELECT 1 FROM schedules s
+  WHERE s.class_section_id=cs.id AND s.recurring_flag=1
+    AND s.weekday=3 AND s.start_time='09:45:00' AND s.end_time='11:30:00'
+);
+
+-- T003 (CSE300) — Thứ 4: 13:30–15:30, Thứ 7: 12:55–15:30
+INSERT INTO schedules (class_section_id, weekday, start_time, end_time, recurring_flag)
+SELECT cs.id, 2, '13:30:00', '15:30:00', 1
+FROM class_sections cs
+JOIN courses  c ON c.id=cs.course_id
+JOIN teachers t ON t.id=cs.teacher_id
+WHERE c.code='CSE300' AND t.teacher_code='T003'
+AND NOT EXISTS (
+  SELECT 1 FROM schedules s
+  WHERE s.class_section_id=cs.id AND s.recurring_flag=1
+    AND s.weekday=2 AND s.start_time='13:30:00' AND s.end_time='15:30:00'
+);
+
+INSERT INTO schedules (class_section_id, weekday, start_time, end_time, recurring_flag)
+SELECT cs.id, 5, '12:55:00', '15:30:00', 1
+FROM class_sections cs
+JOIN courses  c ON c.id=cs.course_id
+JOIN teachers t ON t.id=cs.teacher_id
+WHERE c.code='CSE300' AND t.teacher_code='T003'
+AND NOT EXISTS (
+  SELECT 1 FROM schedules s
+  WHERE s.class_section_id=cs.id AND s.recurring_flag=1
+    AND s.weekday=5 AND s.start_time='12:55:00' AND s.end_time='15:30:00'
+);
