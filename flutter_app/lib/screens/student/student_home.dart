@@ -5,6 +5,7 @@ import '../../utils/config.dart';
 import '../../models/user.dart';
 import 'qr_scan_page.dart';
 import 'package:intl/intl.dart';
+import 'course_detail_page.dart';
 
 class StudentHome extends StatefulWidget {
   final AppUser user;
@@ -51,6 +52,7 @@ class _StudentHomeState extends State<StudentHome> {
           'date': DateFormat('yyyy-MM-dd').format(selectedDate),
         },
       );
+      print(res.data);
 
       if (res.statusCode == 200) {
         if (res.data is Map && res.data['data'] != null) {
@@ -245,6 +247,7 @@ class _StudentHomeState extends State<StudentHome> {
                       if (picked != null) _changeDay(picked);
                     },
                   ),
+
                 ],
               )
             ],
@@ -287,9 +290,16 @@ class _StudentHomeState extends State<StudentHome> {
 
                   return Card(
                     elevation: 3,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     child: ListTile(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => CourseDetailPage(course: s),
+                          ),
+                        );
+                      },
                       title: Text(
                         s['course_name'] ?? 'Không rõ môn học',
                         style: const TextStyle(fontWeight: FontWeight.bold),
@@ -301,8 +311,7 @@ class _StudentHomeState extends State<StudentHome> {
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text(formattedTime,
-                              style: const TextStyle(fontSize: 14)),
+                          Text(formattedTime, style: const TextStyle(fontSize: 14)),
                           const SizedBox(width: 8),
                           Icon(Icons.circle, color: color, size: 16),
                         ],
