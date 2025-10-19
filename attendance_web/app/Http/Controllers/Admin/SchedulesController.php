@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Admin;
 
 
 use App\Http\Controllers\Controller;
-use App\Models\ViewTeacherSchedule;
+use App\Models\Schedule;
 use Illuminate\Http\Request;
 
 
@@ -23,14 +23,14 @@ class SchedulesController extends Controller
             'location_lat' => 'nullable|numeric',
             'location_lng' => 'nullable|numeric',
         ]);
-        $s = ViewTeacherSchedule::create($data);
+        $s = Schedule::create($data);
         return response()->json($s, 201);
     }
 
 
     public function destroy($id)
     {
-        ViewTeacherSchedule::destroy($id);
+        Schedule::destroy($id);
         return response()->json(['message'=>'Deleted']);
     }
 }

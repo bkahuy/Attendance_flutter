@@ -2,7 +2,7 @@
 namespace App\Http\Controllers\Web\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\{ViewTeacherSchedule,ClassSection};
+use App\Models\{Schedule,ClassSection};
 use Illuminate\Http\Request;
 
 class SchedulesWebController extends Controller
@@ -24,13 +24,13 @@ class SchedulesWebController extends Controller
         $data['end_time']   .= ':00';
         $data['recurring_flag'] = (int)($data['recurring_flag'] ?? 0);
 
-        ViewTeacherSchedule::create($data);
+        Schedule::create($data);
         return back()->with('ok','Đã thêm lịch dạy');
     }
 
     public function destroy($id)
     {
-        ViewTeacherSchedule::destroy($id);
+        Schedule::destroy($id);
         return back()->with('ok','Đã xoá lịch');
     }
 }

@@ -8,6 +8,8 @@ use App\Models\{Student,ClassSection,Schedule,AttendanceSession,AttendanceRecord
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Hash;
+
 
 
 class StudentController extends Controller
@@ -80,4 +82,44 @@ class StudentController extends Controller
 
         return response()->json(['message' => 'Checked in', 'record' => $rec]);
     }
+    // 📅 Lấy lịch học theo ngày
+    public function scheduleByDate(Request $request)
+    {
+        $date = $request->input('date') ?? now()->toDateString();
+        $user = auth('api')->user();
+
+        $student = Student::where('user_id', $user->id)->firstOrFail();
+
+        $carbonWeekday = Carbon::parse($date)->dayOfWeek; // Carbon: 0=CN, 1=T2...
+        $weekday = ($carbonWeekday === 0) ? 6 : $carbonWeekday - 1;
+
+        $classes = $student->classes()
+            ->with(['course', 'schedules' => function ($q) use ($date, $weekday) {
+                $q->where(function ($qq) use ($date) {
+                    $qq->where('recurring_flag', 0)->whereDate('date', $date);
+                })->orWhere(function ($qq) use ($weekday) {
+                    $qq->where('recurring_flag', 1)->where('weekday', $weekday);
+                });
+            }])
+            ->get();
+
+        $schedules = $classes->flatMap(function ($class) {
+            return $class->schedules->map(function ($schedule) use ($class) {
+                return [
+                    'course_name' => $class->course->name ?? '',
+                    'class_name'  => $class->name,
+                    'room'        => $schedule->room,
+                    'start_time'  => $schedule->start_time,
+                    'end_time'    => $schedule->end_time,
+                ];
+            });
+        });
+
+        return response()->json([
+            'success' => true,
+            'data' => $schedules->values(),
+        ]);
+    }
+
+
 }

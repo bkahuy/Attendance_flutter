@@ -1,30 +1,19 @@
 <?php
 
+
 namespace App\Http\Controllers;
 
+
+use App\Models\{Teacher,ClassSection,Schedule,AttendanceSession,AttendanceRecord};
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
-use App\Models\{
-    Teacher,
-    ClassSection,
-    AttendanceSession,
-    AttendanceRecord
-};
+use Illuminate\Support\Carbon;
+
 
 class TeacherController extends Controller
 {
-    /**
-     * GET /api/teacher/schedule?date=YYYY-MM-DD
-     * (DEV) có thể truyền teacher_user_id nếu chưa login JWT
-     * Trả về: [
-     *   { class_section_id, course_code, course_name, term, room, start_time, end_time }
-     * ]
-     */
-    public function scheduleByDate(Request $req)
+    public function scheduleByDate(Request $r)
     {
         $date = $req->query('date', now()->toDateString()); // YYYY-MM-DD
 
@@ -81,66 +70,46 @@ class TeacherController extends Controller
         }
     }
 
-    /**
-     * POST /api/attendance/session
-     * body: class_section_id, start_at, end_at, mode_flags{camera?,gps?,password?}, password?
-     * optional: schedule_id
-     */
+
     public function createSession(Request $r)
     {
         $data = $r->validate([
             'class_section_id' => 'required|exists:class_sections,id',
-            'start_at'         => 'required|date',
-            'end_at'           => 'required|date|after:start_at',
-            'mode_flags'       => 'required|array',
-            'password'         => 'nullable|string',
-            'schedule_id'      => 'nullable|exists:schedules,id',
+            'start_at' => 'required|date',
+            'end_at' => 'required|date|after:start_at',
+            'mode_flags' => 'required|array',
+            'password' => 'nullable|string',
+            'schedule_id' => 'nullable|exists:schedules,id',
         ]);
-
-        // Bắt buộc đăng nhập JWT để biết ai tạo
-        $creatorId = auth('api')->id();
-        if (!$creatorId) {
-            return response()->json(['error' => 'UNAUTHENTICATED'], 401);
-        }
-        $data['created_by'] = $creatorId;
-
-        // Nếu có password -> hash vào password_hash
+        $data['created_by'] = auth('api')->id();
         if (!empty($data['password'])) {
             $data['password_hash'] = Hash::make($data['password']);
             unset($data['password']);
         }
-
-        // Lưu JSON đúng kiểu
-        // Bảo đảm model AttendanceSession có $casts = ['mode_flags' => 'array'];
         $session = AttendanceSession::create($data);
 
-        // Nếu bật QR trong mode_flags -> tạo token 15 phút
+
+// Nếu bật QR, tạo token hết hạn nhanh (15 phút)
         $qr = null;
-        $mode = $data['mode_flags'] ?? [];
-        if (!empty($mode['qr'])) {
+        if (!empty($data['mode_flags']['qr'])) {
             $token = hash('sha256', Str::random(64));
             $session->qrTokens()->create([
-                'token'      => $token,
+                'token' => $token,
                 'expires_at' => now()->addMinutes(15),
             ]);
-
-            // NOTE: sửa deep_link này KHỚP với route student dùng để resolve
             $qr = [
-                'token'     => $token,
-                // Nếu app Flutter đang gọi /api/attendance/resolve-qr
-                'deep_link' => url("/api/attendance/resolve-qr?token={$token}"),
+                'token' => $token,
+                'deep_link' => url("/attendance/checkin?token={$token}"),
             ];
         }
+
 
         return response()->json(['session' => $session, 'qr' => $qr], 201);
     }
 
-    /**
-     * GET /api/attendance/session/{id}
-     */
+
     public function sessionDetail($id)
     {
-        return AttendanceSession::with(['classSection.course', 'records.student.user'])
-            ->findOrFail($id);
+        return AttendanceSession::with(['classSection.course','records.student.user'])->findOrFail($id);
     }
 }

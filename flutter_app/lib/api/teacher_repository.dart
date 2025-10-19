@@ -1,20 +1,19 @@
 import 'package:dio/dio.dart';
 import '../api/api_client.dart';
 import '../utils/config.dart';
-import '../models/schedule_item.dart';
 
 class TeacherRepository {
   final Dio _dio = ApiClient().dio;
 
   /// Lịch giảng dạy theo ngày (YYYY-MM-DD)
-  Future<List<ScheduleItem>> fetchByDate(String yyyymmdd, {int? teacherUserId}) async {
-    final q = <String, dynamic>{'date': yyyymmdd};
-    // DEV ONLY: nếu chưa gắn JWT, truyền thêm uid để test
-    if (teacherUserId != null) q['teacher_user_id'] = teacherUserId;
-
-    final r = await _dio.get(AppConfig.teacherSchedulePath, queryParameters: q);
-    final list = (r.data as List).cast<Map>();
-    return list.map((e) => ScheduleItem.fromJson(Map<String, dynamic>.from(e))).toList();
+  Future<List<Map<String, dynamic>>> scheduleByDate(String date) async {
+    final res = await _dio.get(
+      AppConfig.teacherSchedulePath,
+      queryParameters: {'date': date},
+      options: Options(headers: {'Accept': 'application/json'}),
+    );
+    final List list = res.data as List;
+    return list.cast<Map<String, dynamic>>();
   }
 
   /// Tạo phiên điểm danh thủ công
