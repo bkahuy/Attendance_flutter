@@ -11,6 +11,8 @@ Route::prefix('auth')->group(function(){
     Route::middleware('auth:api')->post('logout',[AuthController::class,'logout']);
 });
 
+Route::post('change-password', [AuthController::class, 'changePassword']);
+
 // Teacher-only APIs
 Route::middleware(['auth:api','role:teacher'])->group(function(){
     Route::get('teacher/schedule',[TeacherController::class,'schedule']);

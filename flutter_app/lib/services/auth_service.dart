@@ -40,4 +40,21 @@ class AuthService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
   }
+
+  Future<void> changePassword({
+    required String userCode,
+    required String oldPassword,
+    required String newPassword,
+    required String confirmPassword,
+  }) async {
+    await _dio.post(
+      AppConfig.changePasswordPath,
+      data: {
+        'user_code': userCode,
+        'old_password': oldPassword,
+        'new_password': newPassword,
+        'confirm_password': confirmPassword,
+      },
+    );
+  }
 }

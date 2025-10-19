@@ -1,4 +1,7 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../services/auth_service.dart';
 
 class ChangePasswordPage extends StatefulWidget {
   const ChangePasswordPage({super.key});
@@ -8,55 +11,78 @@ class ChangePasswordPage extends StatefulWidget {
 }
 
 class _ChangePasswordPageState extends State<ChangePasswordPage> {
-  final _studentCodeController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+
+  final _userCodeController = TextEditingController();
   final _oldPasswordController = TextEditingController();
   final _newPasswordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  final _formKey = GlobalKey<FormState>();
+
+  bool _isOldVisible = false;
+  bool _isNewVisible = false;
+  bool _isConfirmVisible = false;
+  bool _isLoading = false;
+
+  late final AuthService _authService;
+
+  @override
+  void initState() {
+    super.initState();
+    _authService = context.read<AuthService>();
+  }
 
   @override
   void dispose() {
-    _studentCodeController.dispose();
+    _userCodeController.dispose();
     _oldPasswordController.dispose();
     _newPasswordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
   }
 
-  void _handleChangePassword() {
-    // Ẩn bàn phím
+  void _handleChangePassword() async {
     FocusScope.of(context).unfocus();
 
-    // TODO: Thêm logic gọi API đổi mật khẩu ở đây
-    // 1. Lấy dữ liệu từ các controller:
-    final studentCode = _studentCodeController.text;
-    final oldPassword = _oldPasswordController.text;
-    final newPassword = _newPasswordController.text;
-    final confirmPassword = _confirmPasswordController.text;
+    if (!_formKey.currentState!.validate()) return;
 
-    // 2. Kiểm tra dữ liệu đầu vào
-    if (studentCode.isEmpty || oldPassword.isEmpty || newPassword.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Vui lòng nhập đầy đủ thông tin')),
+    setState(() => _isLoading = true);
+
+    try {
+      await _authService.changePassword(
+        userCode: _userCodeController.text,
+        oldPassword: _oldPasswordController.text,
+        newPassword: _newPasswordController.text,
+        confirmPassword: _confirmPasswordController.text,
       );
-      return;
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Đổi mật khẩu thành công!'),
+            backgroundColor: Colors.green.shade600,
+          ),
+        );
+        Navigator.of(context).pop();
+      }
+    } on DioException catch (e) {
+      if (mounted) {
+        final responseData = e.response?.data as Map<String, dynamic>?;
+        final errorMessage = responseData?['error'] ??
+            responseData?['message'] ??
+            'Đã có lỗi xảy ra. Vui lòng thử lại.';
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: Colors.red.shade600,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
-
-    if (newPassword != confirmPassword) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Mật khẩu mới không khớp')),
-      );
-      return;
-    }
-
-    // 3. Giả lập gọi API thành công
-    print('Đang đổi mật khẩu cho MSV: $studentCode');
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Đổi mật khẩu thành công!')),
-    );
-
-    // 4. Quay lại trang trước đó
-    Navigator.of(context).pop();
   }
 
   @override
@@ -64,91 +90,152 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Đổi mật khẩu'),
-        backgroundColor: Colors.deepPurple.shade200,
+        centerTitle: true,
+        backgroundColor: Colors.deepPurple.shade400,
         foregroundColor: Colors.white,
+        elevation: 2,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _buildTextField(
-                controller: _studentCodeController,
-                labelText: 'Mã sinh viên',
-              ),
-              const SizedBox(height: 20),
-              _buildTextField(
-                controller: _oldPasswordController,
-                labelText: 'Mật khẩu cũ',
-                isPassword: true,
-              ),
-              const SizedBox(height: 20),
-              _buildTextField(
-                controller: _newPasswordController,
-                labelText: 'Mật khẩu mới',
-                isPassword: true,
-              ),
-              const SizedBox(height: 20),
-              _buildTextField(
-                controller: _confirmPasswordController,
-                labelText: 'Nhập lại mật khẩu',
-                isPassword: true,
-              ),
-              const SizedBox(height: 40),
-              ElevatedButton(
-                onPressed: _handleChangePassword,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.grey.shade300,
-                  foregroundColor: Colors.black87,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                TextFormField(
+                  controller: _userCodeController,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Vui lòng nhập mã người dùng';
+                    }
+                    return null;
+                  },
+                  decoration: InputDecoration(
+                    labelText: 'Mã người dùng (MSV/MGV)',
+                    filled: true,
+                    fillColor: Colors.grey.shade100,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                        vertical: 14, horizontal: 16),
                   ),
-                  elevation: 0,
                 ),
-                child: const Text(
-                  'XÁC NHẬN',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                const SizedBox(height: 20),
+                _buildPasswordField(
+                  controller: _oldPasswordController,
+                  labelText: 'Mật khẩu cũ',
+                  visible: _isOldVisible,
+                  onToggle: () =>
+                      setState(() => _isOldVisible = !_isOldVisible),
+                   validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Vui lòng nhập mật khẩu cũ';
+                    }
+                    return null;
+                  },
                 ),
-              ),
-            ],
+                const SizedBox(height: 20),
+                _buildPasswordField(
+                  controller: _newPasswordController,
+                  labelText: 'Mật khẩu mới',
+                  visible: _isNewVisible,
+                  onToggle: () =>
+                      setState(() => _isNewVisible = !_isNewVisible),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Vui lòng nhập mật khẩu mới';
+                    }
+                    if (value.length < 6) {
+                      return 'Mật khẩu phải ít nhất 6 ký tự';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 20),
+                _buildPasswordField(
+                  controller: _confirmPasswordController,
+                  labelText: 'Nhập lại mật khẩu mới',
+                  visible: _isConfirmVisible,
+                  onToggle: () =>
+                      setState(() => _isConfirmVisible = !_isConfirmVisible),
+                  validator: (value) {
+                     if (value == null || value.isEmpty) {
+                      return 'Vui lòng nhập lại mật khẩu mới';
+                    }
+                    if (value != _newPasswordController.text) {
+                      return 'Mật khẩu không khớp';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 40),
+                ElevatedButton(
+                  onPressed: _isLoading ? null : _handleChangePassword,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.deepPurple.shade400,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 2,
+                  ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Text(
+                          'XÁC NHẬN',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  // Widget con để tái sử dụng, giúp code gọn hơn
-  Widget _buildTextField({
+  Widget _buildPasswordField({
     required TextEditingController controller,
     required String labelText,
-    bool isPassword = false,
+    required bool visible,
+    required VoidCallback onToggle,
+    String? Function(String?)? validator,
   }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          labelText,
-          style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
-        ),
-        const SizedBox(height: 8),
-        TextFormField(
-          controller: controller,
-          obscureText: isPassword,
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: Colors.grey.shade200,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
-            ),
-            contentPadding:
-            const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+    return TextFormField(
+      controller: controller,
+      obscureText: !visible,
+      validator: validator,
+      decoration: InputDecoration(
+        labelText: labelText,
+        filled: true,
+        fillColor: Colors.grey.shade100,
+        suffixIcon: IconButton(
+          icon: Icon(
+            visible ? Icons.visibility_off : Icons.visibility,
+            color: Colors.deepPurple,
           ),
+          onPressed: onToggle,
         ),
-      ],
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
+        contentPadding:
+            const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+      ),
     );
   }
 }
