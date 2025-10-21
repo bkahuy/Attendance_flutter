@@ -8,7 +8,7 @@ class StudentRepository {
 
   Future<List<ScheduleItem>> getScheduleByDate(String date) async {
     final response = await _client.get('/student/schedule?date=$date');
-    final List data = response['data'];
+    final List data = response.data['data'];
     return data.map((e) => ScheduleItem.fromJson(e)).toList();
   }
 }
