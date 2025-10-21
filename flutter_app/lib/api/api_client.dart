@@ -14,8 +14,8 @@ class ApiClient {
   Future<void> init() async {
     dio = Dio(BaseOptions(
       baseUrl: AppConfig.BASE_URL,
-      connectTimeout: const Duration(seconds: 10),
-      receiveTimeout: const Duration(seconds: 20),
+      connectTimeout: const Duration(seconds: 100),
+      receiveTimeout: const Duration(seconds: 200),
       headers: {'Accept': 'application/json'},
     ));
 
