@@ -17,17 +17,11 @@ class AuthController extends Controller
                 'password' => ['required','string'],
             ]);
 
-            // Pre-check: user phải tồn tại và thuộc role cho phép
             $user = User::where('email', $data['email'])->first();
             if (!$user || !in_array($user->role, ['teacher','student'], true)) {
                 return response()->json(['error' => 'Invalid credentials'], 401);
             }
-            // (Optional) khóa theo trạng thái
-            // if (($user->status ?? 'active') !== 'active') {
-            //     return response()->json(['error' => 'Account disabled'], 403);
-            // }
 
-            // Thử cấp token
             if (!$token = auth('api')->attempt($data)) {
                 return response()->json(['error' => 'Invalid credentials'], 401);
             }
@@ -35,7 +29,7 @@ class AuthController extends Controller
             return response()->json([
                 'access_token' => $token,
                 'token_type'   => 'Bearer',
-                'expires_in'   => auth('api')->factory()->getTTL() * 60, // giây
+                'expires_in'   => auth('api')->factory()->getTTL() * 60,
                 'user'         => $user->only(['id','name','email','role']),
             ], 200);
 
@@ -51,11 +45,11 @@ class AuthController extends Controller
         return response()->json(auth('api')->user());
     }
 
-    // Refresh JWT (tuỳ app bạn có dùng không)
+    // Refresh JWT
     public function refresh()
     {
         try {
-            $new = auth('api')->refresh(); // cần enable blacklist trong jwt config nếu muốn revoke
+            $new = auth('api')->refresh();
             return response()->json([
                 'access_token' => $new,
                 'token_type'   => 'Bearer',
@@ -66,7 +60,7 @@ class AuthController extends Controller
         }
     }
 
-    // Logout (invalidate token hiện tại)
+    // Logout
     public function logout()
     {
         try {
@@ -74,4 +68,40 @@ class AuthController extends Controller
         } catch (\Throwable $e) {}
         return response()->json(['ok'=>true]);
     }
+
+    // ✅ ĐỔI MẬT KHẨU CHO SINH VIÊN & GIẢNG VIÊN
+    public function changePassword(Request $request)
+    {
+        try {
+            $data = $request->validate([
+                'user_code'        => ['required', 'string'],   // mã SV hoặc GV
+                'old_password'     => ['required', 'string'],
+                'new_password'     => ['required', 'string', 'min:6'],
+                'confirm_password' => ['required', 'same:new_password'],
+            ]);
+
+            $user = User::where('code', $data['user_code'])->first();
+
+            if (!$user) {
+                return response()->json(['error' => 'Mã người dùng không tồn tại'], 404);
+            }
+
+            if (!Hash::check($data['old_password'], $user->password)) {
+                return response()->json(['error' => 'Mật khẩu cũ không chính xác'], 401);
+            }
+
+            $user->password = Hash::make($data['new_password']);
+            $user->save();
+
+            return response()->json(['message' => 'Đổi mật khẩu thành công'], 200);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Trả lỗi gọn cho Flutter dễ đọc
+            return response()->json(['error' => collect($e->errors())->flatten()->first()], 422);
+        } catch (\Throwable $e) {
+            \Log::error('Change password error: '.$e->getMessage());
+            return response()->json(['error' => 'Server error'], 500);
+        }
+    }
+
 }
