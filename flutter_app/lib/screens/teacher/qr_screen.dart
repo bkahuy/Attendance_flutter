@@ -1,30 +1,45 @@
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
-class QrScreen extends StatelessWidget {
-  final String qrText;
-  final int sessionId;
-  final String? password;
-  const QrScreen(
-      {super.key,
-      required this.qrText,
-      required this.sessionId,
-      this.password});
+class ShowQrPage extends StatelessWidget {
+  final Map<String, dynamic> session;
+
+  const ShowQrPage({super.key, required this.session});
+
   @override
   Widget build(BuildContext context) {
+    // Link để sinh viên quét (hoặc bạn có thể chỉ cần session ID)
+    final qrData = "https://yourserver.com/attendance/session/${session['id']}";
+
     return Scaffold(
-        appBar: AppBar(title: const Text('QR Điểm Danh')),
-        body: Center(
-            child:
-                Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-          QrImageView(data: qrText, version: QrVersions.auto, size: 240),
-          const SizedBox(height: 16),
-          Text('Session ID: $sessionId'),
-          if (password != null && password!.isNotEmpty) ...[
-            const SizedBox(height: 4),
-            Text('Password: $password',
-                style: const TextStyle(fontWeight: FontWeight.bold))
-          ]
-        ])));
+      appBar: AppBar(
+        title: Text("Mã QR - ${session['course']}"),
+        centerTitle: true,
+      ),
+      body: SafeArea(
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              QrImageView(
+                data: qrData,
+                version: QrVersions.auto,
+                size: 250.0,
+                backgroundColor: Colors.white,
+              ),
+              const SizedBox(height: 20),
+              Text(
+                "Phiên điểm danh: ${session['course']}",
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Text("Giảng viên: ${session['teacher']}"),
+              const SizedBox(height: 8),
+              Text("ID phiên: ${session['id']}"),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

@@ -35,7 +35,7 @@ class TeacherController extends Controller
         }
 //khong duong sua
         try {
-            // Query thẳng (tương đương SP sp_teacher_daily_schedule)
+            // Query thẳng (tương đương SP sp_teacher_daily_schedule) với thông tin lớp
             $rows = DB::select("
                 SELECT sc.id AS class_section_id,
                        c.code AS course_code,
@@ -43,18 +43,22 @@ class TeacherController extends Controller
                        sc.term,
                        sc.room,
                        sch.start_time,
-                       sch.end_time
+                       sch.end_time,
+                       GROUP_CONCAT(cl.name SEPARATOR ', ') AS class_names
                 FROM class_sections sc
                 JOIN teachers t     ON t.id = sc.teacher_id
                 JOIN users tu       ON tu.id = t.user_id
                 JOIN courses c      ON c.id = sc.course_id
                 JOIN schedules sch  ON sch.class_section_id = sc.id
+                LEFT JOIN class_section_classes csc ON csc.class_section_id = sc.id
+                LEFT JOIN classes cl ON cl.id = csc.class_id
                 WHERE tu.id = ?
                   AND (
                     (sch.recurring_flag = 0 AND sch.date = ?)
                     OR
                     (sch.recurring_flag = 1 AND sch.weekday = WEEKDAY(?))
                   )
+                GROUP BY sc.id, c.code, c.name, sc.term, sc.room, sch.start_time, sch.end_time
                 ORDER BY sch.start_time
             ", [$teacherUserId, $date, $date]);
 
@@ -68,6 +72,7 @@ class TeacherController extends Controller
                     'room'             => (string) ($r->room ?? ''),
                     'start_time'       => (string) $r->start_time, // HH:MM:SS
                     'end_time'         => (string) $r->end_time,   // HH:MM:SS
+                    'class_names'      => (string) ($r->class_names ?? ''), // Tên các lớp
                     // 'period'        => 'T 2–3', // nếu muốn server đẩy luôn
                     // 'status'        => 'next',
                     // 'groups'        => 'K66-CNTT1',

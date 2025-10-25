@@ -65,31 +65,77 @@ class _TeacherHomeState extends State<TeacherHome> {
 
   // dùng getter để không “đóng băng” state
   List<Widget> get _pages => [
-    TeacherHomeContent(
-      user: widget.user,
-      schedule: schedule,
-      loading: loading,
-      err: err,
-      selectedDay: selectedDay,
-      onPickDate: (d) async {
-        await _load(d);
-      },
-      onRefresh: () => _load(_selectedDate),
-      selectedDate: _selectedDate,
-    ),
-    const _HistoryPlaceholder(),
-    const SettingsPage(),
-  ];
+        TeacherHomeContent(
+          schedule: schedule,
+          loading: loading,
+          err: err,
+          selectedDay: selectedDay,
+          onPickDate: (d) async {
+            await _load(d);
+          },
+          onRefresh: () => _load(_selectedDate),
+          selectedDate: _selectedDate,
+        ),
+        const _HistoryPlaceholder(),
+        const SettingsPage(),
+      ];
+
+  List<String> get _pageTitles => const ['Trang chủ', 'Lịch sử', 'Cài đặt'];
+
+  AppBar _buildAppBar() {
+    if (_currentIndex == 0) {
+      // Trang chủ: hiển thị thông tin user
+      return AppBar(
+        automaticallyImplyLeading: false, // Không có nút back
+        backgroundColor: Colors.deepPurpleAccent,
+        foregroundColor: Colors.white,
+        elevation: 1,
+        title: Row(
+          children: [
+            const CircleAvatar(
+              radius: 20,
+              backgroundColor: Colors.white,
+              child: Icon(Icons.person, color: Colors.grey, size: 28),
+            ),
+            const SizedBox(width: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.user.name,
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16),
+                ),
+                const Text('Giảng viên',
+                    style: TextStyle(color: Colors.white70, fontSize: 13)),
+              ],
+            )
+          ],
+        ),
+      );
+    } else {
+      // Các trang khác: hiển thị tiêu đề
+      return AppBar(
+        automaticallyImplyLeading: false, // Không có nút back
+        title: Text(_pageTitles[_currentIndex]),
+        centerTitle: true,
+        backgroundColor: Colors.deepPurpleAccent,
+        foregroundColor: Colors.white,
+        elevation: 1,
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFEDEAFF),
-      body: SafeArea(
-        child: IndexedStack(
-          index: _currentIndex,
-          children: _pages,
-        ),
+      appBar: _buildAppBar(),
+      body: IndexedStack(
+        index: _currentIndex,
+        children: _pages,
       ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
@@ -114,7 +160,6 @@ class _TeacherHomeState extends State<TeacherHome> {
 // ============================================================================
 
 class TeacherHomeContent extends StatelessWidget {
-  final AppUser user;
   final List<Map<String, dynamic>> schedule;
   final bool loading;
   final String? err;
@@ -127,7 +172,6 @@ class TeacherHomeContent extends StatelessWidget {
 
   const TeacherHomeContent({
     super.key,
-    required this.user,
     required this.schedule,
     required this.loading,
     required this.err,
@@ -142,7 +186,7 @@ class TeacherHomeContent extends StatelessWidget {
   // strip 14 ngày, bấm là gọi onPickDate(d)
   Widget _dayStrip(BuildContext context) {
     final days =
-    List<DateTime>.generate(14, (i) => DateTime.now().add(Duration(days: i)));
+        List<DateTime>.generate(14, (i) => DateTime.now().add(Duration(days: i)));
     String label(DateTime d) {
       const wd = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
       return '${wd[d.weekday % 7]} ${d.day}/${d.month}';
@@ -174,7 +218,7 @@ class TeacherHomeContent extends StatelessWidget {
     );
   }
 
-  // ---------------- UI helpers (để dựng card giống ảnh) ----------------
+  // ---------------- UI helpers ----------------
   String _hhmm(String t) {
     if (t.isEmpty) return '';
     final parts = t.split(':');
@@ -213,37 +257,6 @@ class TeacherHomeContent extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // Header
-        Container(
-          width: double.infinity,
-          color: const Color(0xFF7A6EF3),
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              const CircleAvatar(
-                radius: 24,
-                backgroundColor: Colors.white,
-                child: Icon(Icons.person, color: Colors.grey, size: 32),
-              ),
-              const SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    user.name,
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16),
-                  ),
-                  const Text('Giảng viên',
-                      style: TextStyle(color: Colors.white70)),
-                ],
-              )
-            ],
-          ),
-        ),
-
         // strip 14 ngày
         _dayStrip(context),
 
@@ -279,7 +292,7 @@ class TeacherHomeContent extends StatelessWidget {
                     context: context,
                     initialDate: selectedDate,
                     firstDate:
-                    DateTime.now().subtract(const Duration(days: 365)),
+                        DateTime.now().subtract(const Duration(days: 365)),
                     lastDate: DateTime.now().add(const Duration(days: 365)),
                   );
                   if (d != null) await onPickDate(d);
@@ -299,84 +312,76 @@ class TeacherHomeContent extends StatelessWidget {
           child: loading
               ? const Center(child: CircularProgressIndicator())
               : (err != null
-              ? Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(err!, style: const TextStyle(color: Colors.red)),
-                const SizedBox(height: 8),
-                FilledButton(
-                    onPressed: onRefresh, child: const Text('Thử lại')),
-              ],
-            ),
-          )
-              : (schedule.isEmpty
-              ? const Center(child: Text('Không có lịch cho ngày này'))
-              : ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            itemCount: schedule.length,
-            itemBuilder: (ctx, i) {
-              final s = schedule[i];
-
-              final course = (s['course_name'] ?? 'Môn học') as String;
-              final groups = (s['groups'] ??
-                  s['class_name'] ??
-                  s['note'] ??
-                  '') as String; // tuỳ dữ liệu bạn có
-              final room = (s['room'] ?? '') as String;
-              final start = (s['start_time'] ?? '') as String;
-              final end = (s['end_time'] ?? '') as String;
-              final periodTxt =
-              _periodOrTime(start, end, s['period']?.toString());
-              final status = (s['status'] ??
-                  _statusByTime(start, end, selectedDate))
-              as String;
-
-              final dayLabel =
-                  '${selectedDate.month}/${selectedDate.day}';
-
-              return Padding(
-                padding:
-                const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
-                child: ScheduleCard(
-                  title: '$course ($dayLabel)',
-                  subtitle: groups,
-                  room: room.isNotEmpty ? room : '—',
-                  periodText: periodTxt,
-                  timeText: _hhmm(start),
-                  status: status, // 'current' | 'next' | 'done'
-                  onTap: () {
-                    final csId = (s['class_section_id'] as num?)?.toInt();
-                    if (csId == null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Thiếu class_section_id')),
-                      );
-                      return;
-                    }
-
-                    final label = '$course - ${room.isNotEmpty ? room : '—'} '
-                        '(${_hhmm(start)}-${_hhmm(end)})';
-
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => CreateSessionPage(schedule: s),
+                  ? Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(err!, style: const TextStyle(color: Colors.red)),
+                          const SizedBox(height: 8),
+                          FilledButton(
+                              onPressed: onRefresh, child: const Text('Thử lại')),
+                        ],
                       ),
-                    );
-                  },
+                    )
+                  : (schedule.isEmpty
+                      ? const Center(child: Text('Không có lịch cho ngày này'))
+                      : ListView.builder(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          itemCount: schedule.length,
+                          itemBuilder: (ctx, i) {
+                            final s = schedule[i];
 
-                ),
-              );
-            },
-          ))),
+                            final course = (s['course_name'] ?? 'Môn học') as String;
+                            final className = (s['class_names'] ?? '') as String;
+                            final room = (s['room'] ?? '') as String;
+                            final start = (s['start_time'] ?? '') as String;
+                            final end = (s['end_time'] ?? '') as String;
+                            final periodTxt =
+                                _periodOrTime(start, end, s['period']?.toString());
+                            final status = (s['status'] ??
+                                _statusByTime(start, end, selectedDate))
+                                as String;
+
+                            final dayLabel =
+                                '${selectedDate.month}/${selectedDate.day}';
+
+                            return Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+                              child: ScheduleCard(
+                                title: '$course ($dayLabel)',
+                                subtitle: className,
+                                room: room.isNotEmpty ? room : '—',
+                                periodText: periodTxt,
+                                timeText: _hhmm(start),
+                                status: status, // 'current' | 'next' | 'done'
+                                onTap: () {
+                                  final csId = (s['class_section_id'] as num?)?.toInt();
+                                  if (csId == null) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Thiếu tên lớp học phần')),
+                                    );
+                                    return;
+                                  }
+
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => CreateSessionPage(schedule: s),
+                                    ),
+                                  );
+                                },
+
+                              ),
+                            );
+                          },
+                        ))),
         ),
       ],
     );
   }
 }
 
-// ============================================================================
-// Card UI giống ảnh (bo góc, icon, giờ bên phải, chấm trạng thái)
 // ============================================================================
 class ScheduleCard extends StatelessWidget {
   final String title;       // "CSE441 Mobile App (9/25)"
@@ -401,13 +406,13 @@ class ScheduleCard extends StatelessWidget {
   Color _dotColor() {
     switch (status) {
       case 'current':
-        return Colors.green; // đang học
+        return Colors.yellow; // đang học
       case 'next':
-        return Colors.amber; // sắp tới
+        return Colors.green; // sắp tới
       case 'done':
-        return Colors.grey; // đã xong
+        return Colors.red; // đã xong
       default:
-        return Colors.amber;
+        return Colors.black;
     }
   }
 

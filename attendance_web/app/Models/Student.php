@@ -12,18 +12,14 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Student extends Model
 {
-    protected $fillable = ['user_id','student_code','faculty','class_name','extra_info'];
-    protected $casts = ['extra_info' => 'array'];
+    protected $fillable = ['user_id','student_code','class_id','birthday'];
+
 
 
     public function user(): BelongsTo { return $this->belongsTo(User::class); }
-    public function classes(): BelongsToMany { return $this->belongsToMany(ClassSection::class, 'class_section_students'); }
+    public function class(): BelongsTo { return $this->belongsTo(\App\Models\StudentClass::class, 'class_id'); }
+    public function classSections(): BelongsToMany { return $this->belongsToMany(ClassSection::class, 'class_section_students'); }
     public function records(): HasMany { return $this->hasMany(AttendanceRecord::class); }
 
-    public function classSections()
-    {
-        return $this->belongsToMany(\App\Models\ClassSection::class, 'class_section_students', 'student_id', 'class_section_id')
-            ->withPivot('enrolled_at');
-    }
 
 }

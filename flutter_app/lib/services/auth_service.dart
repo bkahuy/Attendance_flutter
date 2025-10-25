@@ -42,7 +42,7 @@ class AuthService {
   }
 
   Future<void> changePassword({
-    required String userCode,
+    required String email,
     required String oldPassword,
     required String newPassword,
     required String confirmPassword,
@@ -50,7 +50,7 @@ class AuthService {
     await _dio.post(
       AppConfig.changePasswordPath,
       data: {
-        'user_code': userCode,
+        'email': email,
         'old_password': oldPassword,
         'new_password': newPassword,
         'confirm_password': confirmPassword,

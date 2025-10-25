@@ -1,4 +1,5 @@
 class AppConfig {
+  // static const String BASE_URL = 'http://103.75.183.227';
   static const String BASE_URL = 'http://10.0.2.2:8000';
   static const String loginPath = '/api/auth/login';
   static const String profilePath = '/api/auth/profile';

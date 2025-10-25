@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class User extends Authenticatable implements JWTSubject
 {
-    protected $fillable = ['name','email','password','role','phone','status'];
+    protected $fillable = ['name','email','password','role','phone','status','last_login_at'];
     protected $hidden = ['password'];
 
 
@@ -26,4 +26,5 @@ class User extends Authenticatable implements JWTSubject
 
 
     public function createdSessions(): HasMany { return $this->hasMany(AttendanceSession::class, 'created_by'); }
+    public function apiTokens(): HasMany { return $this->hasMany(ApiToken::class); }
 }
