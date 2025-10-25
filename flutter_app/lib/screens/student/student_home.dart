@@ -307,7 +307,7 @@ class _StudentHomeState extends State<StudentHome> {
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                       subtitle: Text(
-                        'Phòng: ${s['room'] ?? '--'}',
+                        'Phòng: ${s['room_name'] ?? '--'}',
                         style: const TextStyle(fontSize: 14),
                       ),
                       trailing: Row(

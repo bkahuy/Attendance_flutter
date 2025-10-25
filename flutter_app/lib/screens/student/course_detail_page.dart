@@ -14,11 +14,11 @@ class CourseDetailPage extends StatefulWidget {
 }
 
 class _CourseDetailPageState extends State<CourseDetailPage> {
-  // Dữ liệu mẫu — sau này bạn sẽ lấy từ API
+  // Dữ liệu mẫu — sau này sẽ lấy từ API
   final List<Map<String, dynamic>> _sessions = [
     {'date': '2025-10-13', 'status': 'present'},
     {'date': '2025-10-17', 'status': 'pending'},
-    {'date': '2025-10-20', 'status': 'future'},
+    {'date': '2025-10-21', 'status': 'future'},
   ];
 
   @override
@@ -43,7 +43,6 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 20),
-
             // Thông tin môn học
             Card(
               elevation: 4.0,
@@ -63,7 +62,6 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
                       style: TextStyle(fontSize: 16, color: Colors.grey[700]),
                     ),
                     const Divider(height: 32),
-
                     // Danh sách buổi học
                     ..._sessions.map((s) => _buildSessionRow(s)).toList(),
                   ],
@@ -86,13 +84,14 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
   }
 
   // Tạo dòng hiển thị buổi học
-  // Tạo dòng hiển thị buổi học
   Widget _buildSessionRow(Map<String, dynamic> session) {
     final date = DateTime.parse(session['date']);
     final formattedDate = DateFormat("EEEE - dd/MM/yy", "vi_VN").format(date);
     final now = DateTime.now();
-    final status = session['status'];
+    final today = DateUtils.dateOnly(now);
+    final sessionDay = DateUtils.dateOnly(date);
 
+    final status = session['status'];
     Widget statusWidget;
 
     // Nếu đã có trạng thái cụ thể
@@ -120,27 +119,23 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
 
       default:
       // Nếu chưa có trạng thái
-        if (date.isAfter(now)) {
+        if (sessionDay.isAfter(today)) {
           // 🔹 Ngày tương lai → Đang chờ
           statusWidget = const Text(
             '? Đang chờ',
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
           );
+        } else if (sessionDay.isBefore(today)) {
+          // 🔹 Ngày đã qua (hôm qua hoặc cũ hơn) → Không cho điểm danh
+          statusWidget = const Text(
+            '❌ Vắng (Quá hạn)',
+            style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold),
+          );
         } else {
-          // 🔹 Ngày đã qua mà chưa điểm danh → Cho phép bấm để điểm danh
+          // 🔹 CHÍNH LÀ HÔM NAY (sessionDay == today) → Cho phép điểm danh
           statusWidget = GestureDetector(
             onTap: () async {
-              // B1: Quét mã QR
-              final qrResult = await Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const QrScanPage(returnData: true),
-                ),
-              );
-
-              if (qrResult == null) return;
-
-              // B2: Chụp ảnh khuôn mặt
+              // B1: Chụp ảnh khuôn mặt
               final picker = ImagePicker();
               final photo = await picker.pickImage(
                 source: ImageSource.camera,
@@ -148,25 +143,22 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
                 imageQuality: 85,
                 preferredCameraDevice: CameraDevice.front,
               );
-
+              // Nếu người dùng hủy chụp ảnh, dừng lại
               if (photo == null) return;
-
-              // B3: Xác nhận điểm danh
+              // B2: Xác nhận điểm danh (Chuyển sang StudentCheckinPage)
               if (!mounted) return;
               final result = await Navigator.push(
                 context,
                 MaterialPageRoute(
                   builder: (_) => StudentCheckinPage(
                     session: {
-                      ...session,
-                      'qr_data': qrResult,
-                      'photo_path': photo.path,
+                      ...session, // Lấy dữ liệu session gốc
+                      'photo_path': photo.path, // Thêm đường dẫn ảnh đã chụp
                     },
                   ),
                 ),
               );
-
-              // ✅ Sau khi quay lại, nếu có kết quả điểm danh
+              // B3: Cập nhật trạng thái (Logic này giữ nguyên)
               if (result != null && result['checkedIn'] == true) {
                 setState(() {
                   final index = _sessions.indexOf(session);
@@ -188,7 +180,6 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
           );
         }
     }
-
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10.0),
       child: Row(
