@@ -28,10 +28,7 @@ class SettingsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Cài đặt',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
+
         backgroundColor: Colors.deepPurple.shade200,
         foregroundColor: Colors.white,
         centerTitle: true,

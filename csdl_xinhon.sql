@@ -277,6 +277,86 @@ BEGIN
 END$$
 DELIMITER ;
 
+DELIMITER $$
+
+CREATE PROCEDURE sp_student_daily_schedule(
+    IN p_student_user_id BIGINT,
+    IN p_date DATE
+)
+BEGIN
+    SELECT 
+        sc.id AS class_section_id,
+        c.code,
+        c.name,
+        sc.term,
+        sch.start_time,
+        sch.end_time,
+        sc.room
+    FROM class_sections sc
+    JOIN class_section_students css ON css.class_section_id = sc.id
+    JOIN students s ON s.id = css.student_id
+    JOIN users su ON su.id = s.user_id
+    JOIN courses c ON c.id = sc.course_id
+    JOIN schedules sch ON sch.class_section_id = sc.id
+    WHERE su.id = p_student_user_id
+      AND (
+        (sch.recurring_flag = 0 AND sch.date = p_date)
+        OR
+        (sch.recurring_flag = 1 AND sch.weekday = WEEKDAY(p_date))
+      )
+      AND p_date BETWEEN sc.start_date AND sc.end_date
+    ORDER BY sch.start_time;
+END$$
+
+DELIMITER ;
+
+CALL sp_student_daily_schedule(10)
+
+UPDATE schedules
+SET recurring_flag = 1
+WHERE recurring_flag = 0;
+
+-- View lịch dạy của giảng viên (mới)
+CREATE OR REPLACE VIEW vw_teacher_schedule AS
+SELECT
+    t.id AS teacher_id,
+    u.name AS teacher_name,
+    c.code AS course_code,
+    c.name AS course_name,
+    cs.term,
+    cs.room,
+    sch.weekday,
+    sch.start_time,
+    sch.end_time,
+    cs.start_date,
+    cs.end_date
+FROM teachers t
+JOIN users u ON u.id = t.user_id
+JOIN class_sections cs ON cs.teacher_id = t.id
+JOIN courses c ON c.id = cs.course_id
+JOIN schedules sch ON sch.class_section_id = cs.id;
+
+-- View lịch học của sinh viên (mới)
+CREATE OR REPLACE VIEW vw_student_schedule AS
+SELECT
+    s.id AS student_id,
+    u.name AS student_name,
+    c.code AS course_code,
+    c.name AS course_name,
+    cs.term,
+    cs.room,
+    sch.weekday,
+    sch.start_time,
+    sch.end_time,
+    cs.start_date,
+    cs.end_date
+FROM students s
+JOIN users u ON u.id = s.user_id
+JOIN class_section_students css ON css.student_id = s.id
+JOIN class_sections cs ON cs.id = css.class_section_id
+JOIN courses c ON c.id = cs.course_id
+JOIN schedules sch ON sch.class_section_id = cs.id;
+
 
 -- Insert into faculties (2 khoa)
 INSERT INTO faculties (name) VALUES
@@ -833,147 +913,107 @@ INSERT INTO class_section_students (class_section_id, student_id) VALUES
 
 -- Insert into schedules (96 bản ghi: 48 lớp học phần, mỗi lớp 2 buổi/tuần)
 INSERT INTO schedules (class_section_id, weekday, start_time, end_time, recurring_flag, location_lat, location_lng) VALUES
--- Lớp học phần 1 (Lớp CNTT-K62A, Lập trình Java): Thứ Hai, Thứ Tư
-(1, 0, '08:00:00', '10:00:00', 1, NULL, NULL),
-(1, 2, '08:00:00', '10:00:00', 1, NULL, NULL),
--- Lớp học phần 2 (Lớp CNTT-K62A, Cơ sở dữ liệu): Thứ Ba, Thứ Năm
-(2, 1, '14:00:00', '16:00:00', 1, NULL, NULL),
-(2, 3, '14:00:00', '16:00:00', 1, NULL, NULL),
--- Lớp học phần 3 (Lớp CNTT-K62B, Lập trình Java): Thứ Hai, Thứ Tư
-(3, 0, '08:00:00', '10:00:00', 1, NULL, NULL),
-(3, 2, '08:00:00', '10:00:00', 1, NULL, NULL),
--- Lớp học phần 4 (Lớp CNTT-K62B, Cơ sở dữ liệu): Thứ Ba, Thứ Năm
-(4, 1, '14:00:00', '16:00:00', 1, NULL, NULL),
-(4, 3, '14:00:00', '16:00:00', 1, NULL, NULL),
--- Lớp học phần 5 (Lớp CNTT-K62C, Lập trình Java): Thứ Hai, Thứ Tư
-(5, 0, '08:00:00', '10:00:00', 1, NULL, NULL),
-(5, 2, '08:00:00', '10:00:00', 1, NULL, NULL),
--- Lớp học phần 6 (Lớp CNTT-K62C, Cơ sở dữ liệu): Thứ Ba, Thứ Năm
-(6, 1, '14:00:00', '16:00:00', 1, NULL, NULL),
-(6, 3, '14:00:00', '16:00:00', 1, NULL, NULL),
--- Lớp học phần 7 (Lớp KTPM-K62A, Lập trình Java): Thứ Hai, Thứ Tư
-(7, 0, '08:00:00', '10:00:00', 1, NULL, NULL),
-(7, 2, '08:00:00', '10:00:00', 1, NULL, NULL),
--- Lớp học phần 8 (Lớp KTPM-K62A, Cơ sở dữ liệu): Thứ Ba, Thứ Năm
-(8, 1, '14:00:00', '16:00:00', 1, NULL, NULL),
-(8, 3, '14:00:00', '16:00:00', 1, NULL, NULL),
--- Lớp học phần 9 (Lớp KTPM-K62B, Lập trình Java): Thứ Hai, Thứ Tư
-(9, 0, '08:00:00', '10:00:00', 1, NULL, NULL),
-(9, 2, '08:00:00', '10:00:00', 1, NULL, NULL),
--- Lớp học phần 10 (Lớp KTPM-K62B, Cơ sở dữ liệu): Thứ Ba, Thứ Năm
-(10, 1, '14:00:00', '16:00:00', 1, NULL, NULL),
-(10, 3, '14:00:00', '16:00:00', 1, NULL, NULL),
--- Lớp học phần 11 (Lớp KTPM-K62C, Lập trình Java): Thứ Hai, Thứ Tư
-(11, 0, '08:00:00', '10:00:00', 1, NULL, NULL),
-(11, 2, '08:00:00', '10:00:00', 1, NULL, NULL),
--- Lớp học phần 12 (Lớp KTPM-K62C, Cơ sở dữ liệu): Thứ Ba, Thứ Năm
-(12, 1, '14:00:00', '16:00:00', 1, NULL, NULL),
-(12, 3, '14:00:00', '16:00:00', 1, NULL, NULL),
--- Lớp học phần 13 (Lớp HTTT-K62A, Hệ thống Thông tin Quản lý): Thứ Hai, Thứ Tư
-(13, 0, '08:00:00', '10:00:00', 1, NULL, NULL),
-(13, 2, '08:00:00', '10:00:00', 1, NULL, NULL),
--- Lớp học phần 14 (Lớp HTTT-K62A, Hệ thống Thông tin Quản lý): Thứ Ba, Thứ Năm
-(14, 1, '14:00:00', '16:00:00', 1, NULL, NULL),
-(14, 3, '14:00:00', '16:00:00', 1, NULL, NULL),
--- Lớp học phần 15 (Lớp HTTT-K62B, Hệ thống Thông tin Quản lý): Thứ Hai, Thứ Tư
-(15, 0, '08:00:00', '10:00:00', 1, NULL, NULL),
-(15, 2, '08:00:00', '10:00:00', 1, NULL, NULL),
--- Lớp học phần 16 (Lớp HTTT-K62B, Hệ thống Thông tin Quản lý): Thứ Ba, Thứ Năm
-(16, 1, '14:00:00', '16:00:00', 1, NULL, NULL),
-(16, 3, '14:00:00', '16:00:00', 1, NULL, NULL),
--- Lớp học phần 17 (Lớp HTTT-K62C, Hệ thống Thông tin Quản lý): Thứ Hai, Thứ Tư
-(17, 0, '08:00:00', '10:00:00', 1, NULL, NULL),
-(17, 2, '08:00:00', '10:00:00', 1, NULL, NULL),
--- Lớp học phần 18 (Lớp HTTT-K62C, Hệ thống Thông tin Quản lý): Thứ Ba, Thứ Năm
-(18, 1, '14:00:00', '16:00:00', 1, NULL, NULL),
-(18, 3, '14:00:00', '16:00:00', 1, NULL, NULL),
--- Lớp học phần 19 (Lớp ANM-K62A, Hệ thống Thông tin Quản lý): Thứ Hai, Thứ Tư
-(19, 0, '08:00:00', '10:00:00', 1, NULL, NULL),
-(19, 2, '08:00:00', '10:00:00', 1, NULL, NULL),
--- Lớp học phần 20 (Lớp ANM-K62A, Hệ thống Thông tin Quản lý): Thứ Ba, Thứ Năm
-(20, 1, '14:00:00', '16:00:00', 1, NULL, NULL),
-(20, 3, '14:00:00', '16:00:00', 1, NULL, NULL),
--- Lớp học phần 21 (Lớp ANM-K62B, Hệ thống Thông tin Quản lý): Thứ Hai, Thứ Tư
-(21, 0, '08:00:00', '10:00:00', 1, NULL, NULL),
-(21, 2, '08:00:00', '10:00:00', 1, NULL, NULL),
--- Lớp học phần 22 (Lớp ANM-K62B, Hệ thống Thông tin Quản lý): Thứ Ba, Thứ Năm
-(22, 1, '14:00:00', '16:00:00', 1, NULL, NULL),
-(22, 3, '14:00:00', '16:00:00', 1, NULL, NULL),
--- Lớp học phần 23 (Lớp ANM-K62C, Hệ thống Thông tin Quản lý): Thứ Hai, Thứ Tư
-(23, 0, '08:00:00', '10:00:00', 1, NULL, NULL),
-(23, 2, '08:00:00', '10:00:00', 1, NULL, NULL),
--- Lớp học phần 24 (Lớp ANM-K62C, Hệ thống Thông tin Quản lý): Thứ Ba, Thứ Năm
-(24, 1, '14:00:00', '16:00:00', 1, NULL, NULL),
-(24, 3, '14:00:00', '16:00:00', 1, NULL, NULL),
--- Lớp học phần 25 (Lớp KT-K62A, Kế toán tài chính): Thứ Hai, Thứ Tư
-(25, 0, '08:00:00', '10:00:00', 1, NULL, NULL),
-(25, 2, '08:00:00', '10:00:00', 1, NULL, NULL),
--- Lớp học phần 26 (Lớp KT-K62A, Kiểm toán nội bộ): Thứ Ba, Thứ Năm
-(26, 1, '14:00:00', '16:00:00', 1, NULL, NULL),
-(26, 3, '14:00:00', '16:00:00', 1, NULL, NULL),
--- Lớp học phần 27 (Lớp KT-K62B, Kế toán tài chính): Thứ Hai, Thứ Tư
-(27, 0, '08:00:00', '10:00:00', 1, NULL, NULL),
-(27, 2, '08:00:00', '10:00:00', 1, NULL, NULL),
--- Lớp học phần 28 (Lớp KT-K62B, Kiểm toán nội bộ): Thứ Ba, Thứ Năm
-(28, 1, '14:00:00', '16:00:00', 1, NULL, NULL),
-(28, 3, '14:00:00', '16:00:00', 1, NULL, NULL),
--- Lớp học phần 29 (Lớp KT-K62C, Kế toán tài chính): Thứ Hai, Thứ Tư
-(29, 0, '08:00:00', '10:00:00', 1, NULL, NULL),
-(29, 2, '08:00:00', '10:00:00', 1, NULL, NULL),
--- Lớp học phần 30 (Lớp KT-K62C, Kiểm toán nội bộ): Thứ Ba, Thứ Năm
-(30, 1, '14:00:00', '16:00:00', 1, NULL, NULL),
-(30, 3, '14:00:00', '16:00:00', 1, NULL, NULL),
--- Lớp học phần 31 (Lớp KTO-K62A, Kế toán tài chính): Thứ Hai, Thứ Tư
-(31, 0, '08:00:00', '10:00:00', 1, NULL, NULL),
-(31, 2, '08:00:00', '10:00:00', 1, NULL, NULL),
--- Lớp học phần 32 (Lớp KTO-K62A, Kiểm toán nội bộ): Thứ Ba, Thứ Năm
-(32, 1, '14:00:00', '16:00:00', 1, NULL, NULL),
-(32, 3, '14:00:00', '16:00:00', 1, NULL, NULL),
--- Lớp học phần 33 (Lớp KTO-K62B, Kế toán tài chính): Thứ Hai, Thứ Tư
-(33, 0, '08:00:00', '10:00:00', 1, NULL, NULL),
-(33, 2, '08:00:00', '10:00:00', 1, NULL, NULL),
--- Lớp học phần 34 (Lớp KTO-K62B, Kiểm toán nội bộ): Thứ Ba, Thứ Năm
-(34, 1, '14:00:00', '16:00:00', 1, NULL, NULL),
-(34, 3, '14:00:00', '16:00:00', 1, NULL, NULL),
--- Lớp học phần 35 (Lớp KTO-K62C, Kế toán tài chính): Thứ Hai, Thứ Tư
-(35, 0, '08:00:00', '10:00:00', 1, NULL, NULL),
-(35, 2, '08:00:00', '10:00:00', 1, NULL, NULL),
--- Lớp học phần 36 (Lớp KTO-K62C, Kiểm toán nội bộ): Thứ Ba, Thứ Năm
-(36, 1, '14:00:00', '16:00:00', 1, NULL, NULL),
-(36, 3, '14:00:00', '16:00:00', 1, NULL, NULL),
--- Lớp học phần 37 (Lớp QTKD-K62A, Quản trị Marketing): Thứ Hai, Thứ Tư
-(37, 0, '08:00:00', '10:00:00', 1, NULL, NULL),
-(37, 2, '08:00:00', '10:00:00', 1, NULL, NULL),
--- Lớp học phần 38 (Lớp QTKD-K62A, Quản trị Marketing): Thứ Ba, Thứ Năm
-(38, 1, '14:00:00', '16:00:00', 1, NULL, NULL),
-(38, 3, '14:00:00', '16:00:00', 1, NULL, NULL),
--- Lớp học phần 39 (Lớp QTKD-K62B, Quản trị Marketing): Thứ Hai, Thứ Tư
-(39, 0, '08:00:00', '10:00:00', 1, NULL, NULL),
-(39, 2, '08:00:00', '10:00:00', 1, NULL, NULL),
--- Lớp học phần 40 (Lớp QTKD-K62B, Quản trị Marketing): Thứ Ba, Thứ Năm
-(40, 1, '14:00:00', '16:00:00', 1, NULL, NULL),
-(40, 3, '14:00:00', '16:00:00', 1, NULL, NULL),
--- Lớp học phần 41 (Lớp QTKD-K62C, Quản trị Marketing): Thứ Hai, Thứ Tư
-(41, 0, '08:00:00', '10:00:00', 1, NULL, NULL),
-(41, 2, '08:00:00', '10:00:00', 1, NULL, NULL),
--- Lớp học phần 42 (Lớp QTKD-K62C, Quản trị Marketing): Thứ Ba, Thứ Năm
-(42, 1, '14:00:00', '16:00:00', 1, NULL, NULL),
-(42, 3, '14:00:00', '16:00:00', 1, NULL, NULL),
--- Lớp học phần 43 (Lớp MKT-K62A, Quản trị Marketing): Thứ Hai, Thứ Tư
-(43, 0, '08:00:00', '10:00:00', 1, NULL, NULL),
-(43, 2, '08:00:00', '10:00:00', 1, NULL, NULL),
--- Lớp học phần 44 (Lớp MKT-K62A, Quản trị Marketing): Thứ Ba, Thứ Năm
-(44, 1, '14:00:00', '16:00:00', 1, NULL, NULL),
-(44, 3, '14:00:00', '16:00:00', 1, NULL, NULL),
--- Lớp học phần 45 (Lớp MKT-K62B, Quản trị Marketing): Thứ Hai, Thứ Tư
-(45, 0, '08:00:00', '10:00:00', 1, NULL, NULL),
-(45, 2, '08:00:00', '10:00:00', 1, NULL, NULL),
--- Lớp học phần 46 (Lớp MKT-K62B, Quản trị Marketing): Thứ Ba, Thứ Năm
-(46, 1, '14:00:00', '16:00:00', 1, NULL, NULL),
-(46, 3, '14:00:00', '16:00:00', 1, NULL, NULL),
--- Lớp học phần 47 (Lớp MKT-K62C, Quản trị Marketing): Thứ Hai, Thứ Tư
-(47, 0, '08:00:00', '10:00:00', 1, NULL, NULL),
-(47, 2, '08:00:00', '10:00:00', 1, NULL, NULL),
--- Lớp học phần 48 (Lớp MKT-K62C, Quản trị Marketing): Thứ Ba, Thứ Năm
-(48, 1, '14:00:00', '16:00:00', 1, NULL, NULL),
-(48, 3, '14:00:00', '16:00:00', 1, NULL, NULL);
+-- Giảng viên 2 (Nguyễn Văn Hùng): 6 lớp học phần (1, 3, 5, 7, 9, 11)
+(1, 0, '08:00:00', '10:00:00', 0, NULL, NULL), -- Thứ Hai
+(1, 2, '08:00:00', '10:00:00', 0, NULL, NULL), -- Thứ Tư
+(3, 0, '10:00:00', '12:00:00', 0, NULL, NULL),
+(3, 2, '10:00:00', '12:00:00', 0, NULL, NULL),
+(5, 0, '13:00:00', '15:00:00', 0, NULL, NULL),
+(5, 2, '13:00:00', '15:00:00', 0, NULL, NULL),
+(7, 0, '15:00:00', '17:00:00', 0, NULL, NULL),
+(7, 2, '15:00:00', '17:00:00', 0, NULL, NULL),
+(9, 0, '17:00:00', '19:00:00', 0, NULL, NULL),
+(9, 2, '17:00:00', '19:00:00', 0, NULL, NULL),
+(11, 0, '19:00:00', '21:00:00', 0, NULL, NULL),
+(11, 2, '19:00:00', '21:00:00', 0, NULL, NULL),
+-- Giảng viên 3 (Trần Thị Lan): 6 lớp học phần (2, 4, 6, 8, 10, 12)
+(2, 0, '08:00:00', '10:00:00', 0, NULL, NULL),
+(2, 2, '08:00:00', '10:00:00', 0, NULL, NULL),
+(4, 0, '10:00:00', '12:00:00', 0, NULL, NULL),
+(4, 2, '10:00:00', '12:00:00', 0, NULL, NULL),
+(6, 0, '13:00:00', '15:00:00', 0, NULL, NULL),
+(6, 2, '13:00:00', '15:00:00', 0, NULL, NULL),
+(8, 0, '15:00:00', '17:00:00', 0, NULL, NULL),
+(8, 2, '15:00:00', '17:00:00', 0, NULL, NULL),
+(10, 0, '17:00:00', '19:00:00', 0, NULL, NULL),
+(10, 2, '17:00:00', '19:00:00', 0, NULL, NULL),
+(12, 0, '19:00:00', '21:00:00', 0, NULL, NULL),
+(12, 2, '19:00:00', '21:00:00', 0, NULL, NULL),
+-- Giảng viên 4 (Lê Văn Minh): 6 lớp học phần (13, 15, 17, 19, 21, 23)
+(13, 0, '08:00:00', '10:00:00', 0, NULL, NULL),
+(13, 2, '08:00:00', '10:00:00', 0, NULL, NULL),
+(15, 0, '10:00:00', '12:00:00', 0, NULL, NULL),
+(15, 2, '10:00:00', '12:00:00', 0, NULL, NULL),
+(17, 0, '13:00:00', '15:00:00', 0, NULL, NULL),
+(17, 2, '13:00:00', '15:00:00', 0, NULL, NULL),
+(19, 0, '15:00:00', '17:00:00', 0, NULL, NULL),
+(19, 2, '15:00:00', '17:00:00', 0, NULL, NULL),
+(21, 0, '17:00:00', '19:00:00', 0, NULL, NULL),
+(21, 2, '17:00:00', '19:00:00', 0, NULL, NULL),
+(23, 0, '19:00:00', '21:00:00', 0, NULL, NULL),
+(23, 2, '19:00:00', '21:00:00', 0, NULL, NULL),
+-- Giảng viên 5 (Phạm Thị Hồng): 6 lớp học phần (14, 16, 18, 20, 22, 24)
+(14, 0, '08:00:00', '10:00:00', 0, NULL, NULL),
+(14, 2, '08:00:00', '10:00:00', 0, NULL, NULL),
+(16, 0, '10:00:00', '12:00:00', 0, NULL, NULL),
+(16, 2, '10:00:00', '12:00:00', 0, NULL, NULL),
+(18, 0, '13:00:00', '15:00:00', 0, NULL, NULL),
+(18, 2, '13:00:00', '15:00:00', 0, NULL, NULL),
+(20, 0, '15:00:00', '17:00:00', 0, NULL, NULL),
+(20, 2, '15:00:00', '17:00:00', 0, NULL, NULL),
+(22, 0, '17:00:00', '19:00:00', 0, NULL, NULL),
+(22, 2, '17:00:00', '19:00:00', 0, NULL, NULL),
+(24, 0, '19:00:00', '21:00:00', 0, NULL, NULL),
+(24, 2, '19:00:00', '21:00:00', 0, NULL, NULL),
+-- Giảng viên 6 (Hoàng Văn Nam): 6 lớp học phần (25, 27, 29, 31, 33, 35)
+(25, 0, '08:00:00', '10:00:00', 0, NULL, NULL),
+(25, 2, '08:00:00', '10:00:00', 0, NULL, NULL),
+(27, 0, '10:00:00', '12:00:00', 0, NULL, NULL),
+(27, 2, '10:00:00', '12:00:00', 0, NULL, NULL),
+(29, 0, '13:00:00', '15:00:00', 0, NULL, NULL),
+(29, 2, '13:00:00', '15:00:00', 0, NULL, NULL),
+(31, 0, '15:00:00', '17:00:00', 0, NULL, NULL),
+(31, 2, '15:00:00', '17:00:00', 0, NULL, NULL),
+(33, 0, '17:00:00', '19:00:00', 0, NULL, NULL),
+(33, 2, '17:00:00', '19:00:00', 0, NULL, NULL),
+(35, 0, '19:00:00', '21:00:00', 0, NULL, NULL),
+(35, 2, '19:00:00', '21:00:00', 0, NULL, NULL),
+-- Giảng viên 7 (Vũ Thị Mai): 6 lớp học phần (26, 28, 30, 32, 34, 36)
+(26, 0, '08:00:00', '10:00:00', 0, NULL, NULL),
+(26, 2, '08:00:00', '10:00:00', 0, NULL, NULL),
+(28, 0, '10:00:00', '12:00:00', 0, NULL, NULL),
+(28, 2, '10:00:00', '12:00:00', 0, NULL, NULL),
+(30, 0, '13:00:00', '15:00:00', 0, NULL, NULL),
+(30, 2, '13:00:00', '15:00:00', 0, NULL, NULL),
+(32, 0, '15:00:00', '17:00:00', 0, NULL, NULL),
+(32, 2, '15:00:00', '17:00:00', 0, NULL, NULL),
+(34, 0, '17:00:00', '19:00:00', 0, NULL, NULL),
+(34, 2, '17:00:00', '19:00:00', 0, NULL, NULL),
+(36, 0, '19:00:00', '21:00:00', 0, NULL, NULL),
+(36, 2, '19:00:00', '21:00:00', 0, NULL, NULL),
+-- Giảng viên 8 (Đặng Văn Long): 6 lớp học phần (37, 39, 41, 43, 45, 47)
+(37, 0, '08:00:00', '10:00:00', 0, NULL, NULL),
+(37, 2, '08:00:00', '10:00:00', 0, NULL, NULL),
+(39, 0, '10:00:00', '12:00:00', 0, NULL, NULL),
+(39, 2, '10:00:00', '12:00:00', 0, NULL, NULL),
+(41, 0, '13:00:00', '15:00:00', 0, NULL, NULL),
+(41, 2, '13:00:00', '15:00:00', 0, NULL, NULL),
+(43, 0, '15:00:00', '17:00:00', 0, NULL, NULL),
+(43, 2, '15:00:00', '17:00:00', 0, NULL, NULL),
+(45, 0, '17:00:00', '19:00:00', 0, NULL, NULL),
+(45, 2, '17:00:00', '19:00:00', 0, NULL, NULL),
+(47, 0, '19:00:00', '21:00:00', 0, NULL, NULL),
+(47, 2, '19:00:00', '21:00:00', 0, NULL, NULL),
+-- Giảng viên 9 (Ngô Thị Thanh): 6 lớp học phần (38, 40, 42, 44, 46, 48)
+(38, 0, '08:00:00', '10:00:00', 0, NULL, NULL),
+(38, 2, '08:00:00', '10:00:00', 0, NULL, NULL),
+(40, 0, '10:00:00', '12:00:00', 0, NULL, NULL),
+(40, 2, '10:00:00', '12:00:00', 0, NULL, NULL),
+(42, 0, '13:00:00', '15:00:00', 0, NULL, NULL),
+(42, 2, '13:00:00', '15:00:00', 0, NULL, NULL),
+(44, 0, '15:00:00', '17:00:00', 0, NULL, NULL),
+(44, 2, '15:00:00', '17:00:00', 0, NULL, NULL),
+(46, 0, '17:00:00', '19:00:00', 0, NULL, NULL),
+(46, 2, '17:00:00', '19:00:00', 0, NULL, NULL),
+(48, 0, '19:00:00', '21:00:00', 0, NULL, NULL),
+(48, 2, '19:00:00', '21:00:00', 0, NULL, NULL);

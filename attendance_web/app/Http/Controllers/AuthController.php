@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
 
@@ -19,11 +20,11 @@ class AuthController extends Controller
 
             $user = User::where('email', $data['email'])->first();
             if (!$user || !in_array($user->role, ['teacher','student'], true)) {
-                return response()->json(['error' => 'Invalid credentials'], 401);
+                return response()->json(['error' => 'Thông tin đăng nhập không hợp lệ'], 401);
             }
 
             if (!$token = auth('api')->attempt($data)) {
-                return response()->json(['error' => 'Invalid credentials'], 401);
+                return response()->json(['error' => 'Thông tin đăng nhập không hợp lệ'], 401);
             }
 
             return response()->json([
@@ -69,37 +70,49 @@ class AuthController extends Controller
         return response()->json(['ok'=>true]);
     }
 
-    // ✅ ĐỔI MẬT KHẨU CHO SINH VIÊN & GIẢNG VIÊN
+
+
+
+
     public function changePassword(Request $request)
     {
         try {
+            // Xác thực dữ liệu đầu vào
             $data = $request->validate([
-                'user_code'        => ['required', 'string'],   // mã SV hoặc GV
+                'email'        => ['required', 'string'],
                 'old_password'     => ['required', 'string'],
                 'new_password'     => ['required', 'string', 'min:6'],
                 'confirm_password' => ['required', 'same:new_password'],
             ]);
 
-            $user = User::where('code', $data['user_code'])->first();
+            // Lấy user bằng Query Builder
+            $user = DB::table('users')->where('email', $data['email'])->first();
 
             if (!$user) {
-                return response()->json(['error' => 'Mã người dùng không tồn tại'], 404);
+                return response()->json(['error' => 'Email người dùng không tồn tại'], 404);
             }
 
+            // Kiểm tra mật khẩu cũ
             if (!Hash::check($data['old_password'], $user->password)) {
                 return response()->json(['error' => 'Mật khẩu cũ không chính xác'], 401);
             }
 
-            $user->password = Hash::make($data['new_password']);
-            $user->save();
+            // Mã hoá và cập nhật mật khẩu mới
+            DB::table('users')
+                ->where('email', $data['email'])
+                ->update([
+                    'password' => Hash::make($data['new_password']),
+                    'updated_at' => now(), // nếu có cột updated_at
+                ]);
 
+            // Trả về kết quả
             return response()->json(['message' => 'Đổi mật khẩu thành công'], 200);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
-            // Trả lỗi gọn cho Flutter dễ đọc
+            // Trả lỗi dễ đọc cho Flutter
             return response()->json(['error' => collect($e->errors())->flatten()->first()], 422);
         } catch (\Throwable $e) {
-            \Log::error('Change password error: '.$e->getMessage());
+            \Log::error('Change password error: ' . $e->getMessage());
             return response()->json(['error' => 'Server error'], 500);
         }
     }

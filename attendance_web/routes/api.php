@@ -9,9 +9,10 @@ Route::prefix('auth')->group(function(){
     Route::middleware('auth:api')->get('profile',[AuthController::class,'profile']);
     Route::middleware('auth:api')->post('refresh',[AuthController::class,'refresh']);
     Route::middleware('auth:api')->post('logout',[AuthController::class,'logout']);
+    Route::post('change-password', [AuthController::class, 'changePassword']);
 });
 
-Route::post('change-password', [AuthController::class, 'changePassword']);
+
 
 // Teacher-only APIs
 Route::middleware(['auth:api','role:teacher'])->group(function(){
@@ -22,7 +23,7 @@ Route::middleware(['auth:api','role:teacher'])->group(function(){
     Route::get('stats/session/{id}',[StatsController::class,'sessionStats']);
 });
 
-// Student-only APIs
+// Student-only APIs['error' => 'SERVER_ERROR', 'hint' => $e->getMessage()], 500);
 Route::middleware(['auth:api','role:student'])->group(function(){
     // Sửa lại cho đúng
     Route::get('/student/schedule', [StudentController::class, 'schedule']);

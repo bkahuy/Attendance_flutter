@@ -11,9 +11,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Teacher extends Model
 {
-    protected $fillable = ['user_id','teacher_code','dept'];
+    protected $fillable = ['user_id','teacher_code','department_id'];
 
 
     public function user(): BelongsTo { return $this->belongsTo(User::class); }
-    public function classes(): HasMany { return $this->hasMany(ClassSection::class, 'teacher_id'); }
+    public function department(): BelongsTo { return $this->belongsTo(\App\Models\Department::class); }
+    public function classSections(): HasMany { return $this->hasMany(ClassSection::class, 'teacher_id'); }
 }

@@ -13,7 +13,7 @@ class ChangePasswordPage extends StatefulWidget {
 class _ChangePasswordPageState extends State<ChangePasswordPage> {
   final _formKey = GlobalKey<FormState>();
 
-  final _userCodeController = TextEditingController();
+  final _emailController = TextEditingController();
   final _oldPasswordController = TextEditingController();
   final _newPasswordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
@@ -33,7 +33,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
 
   @override
   void dispose() {
-    _userCodeController.dispose();
+    _emailController.dispose();
     _oldPasswordController.dispose();
     _newPasswordController.dispose();
     _confirmPasswordController.dispose();
@@ -49,7 +49,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
 
     try {
       await _authService.changePassword(
-        userCode: _userCodeController.text,
+        email: _emailController.text,
         oldPassword: _oldPasswordController.text,
         newPassword: _newPasswordController.text,
         confirmPassword: _confirmPasswordController.text,
@@ -104,15 +104,15 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 TextFormField(
-                  controller: _userCodeController,
+                  controller: _emailController,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Vui lòng nhập mã người dùng';
+                      return 'Vui lòng nhập email người dùng';
                     }
                     return null;
                   },
                   decoration: InputDecoration(
-                    labelText: 'Mã người dùng (MSV/MGV)',
+                    labelText: 'Email người dùng',
                     filled: true,
                     fillColor: Colors.grey.shade100,
                     border: OutlineInputBorder(
