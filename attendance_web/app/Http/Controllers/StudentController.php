@@ -51,23 +51,28 @@ class StudentController extends Controller
             ->get();
 
         // Biến đổi dữ liệu để tạo ra một danh sách lịch học phẳng, đúng cấu trúc
-        $schedules = $classes->flatMap(function ($class) {
+        $schedules = $classes->flatMap(function ($class) use($date){
             // Bỏ qua nếu lớp không có lịch học nào (đã được lọc bởi whereHas)
             if (is_null($class->schedules)) {
                 return [];
             }
 
             // Với mỗi lịch học, tạo một object mới chứa thông tin cần thiết
-            return $class->schedules->map(function ($schedule) use ($class) {
+            return $class->schedules->map(function ($schedule) use ($class, $date) {
+                $startTime = Carbon::parse($date . ' ' . $schedule->start_time);
+                $endTime = Carbon::parse($date . ' ' . $schedule->end_time);
+
                 return [
                     'class_section_id' => $class->id,
                     'course_code' => $class->course->course_code ?? '',
                     'course_name' => $class->course->name ?? 'N/A',
                     'class_name'  => $class->name,
-                    'room'        => $schedule->room, // ✅ Dữ liệu phòng học đây rồi!
-                    'start_time'  => Carbon::parse($schedule->start_time)->format('Y-m-d H:i:s'),
-                    'end_time'    => Carbon::parse($schedule->end_time)->format('Y-m-d H:i:s'),
-                    // Bạn có thể thêm các trường dữ liệu khác của schedule ở đây nếu cần
+                    'room'        => $schedule->room,
+
+                    // Trả về định dạng ISO 8601 đầy đủ (Flutter đọc được ngay)
+                    'start_time'  => $startTime->toIso8601String(),
+                    'end_time'    => $endTime->toIso8601String(),
+
                     'schedule_id' => $schedule->id,
                 ];
             });
@@ -145,23 +150,20 @@ class StudentController extends Controller
             // Tìm bản ghi điểm danh của sinh viên trong buổi học này
             $record = $session->records()->where('student_id', $student->id)->first();
 
-            $status = 'pending'; // Trạng thái mặc định là chưa có dữ liệu
+            $status = 'pending'; // Mặc định là 'pending'
 
             if ($record) {
-                // Nếu có bản ghi, lấy trạng thái từ đó (present, late, absent)
+                // Nếu có bản ghi, lấy trạng thái từ đó
                 $status = $record->status;
-            } elseif (now()->gt($session->end_at)) {
-                // Nếu không có bản ghi và buổi học đã qua -> Vắng
-                $status = 'absent';
-            } elseif (now()->between($session->start_at, $session->end_at)) {
-                // Nếu đang trong giờ học mà chưa điểm danh -> có thể điểm danh
-                $status = 'can_attend';
             }
+
+            // XÓA BỎ toàn bộ phần logic elseif.
+            // Hãy để Flutter tự quyết định dựa trên ngày và trạng thái 'pending'.
 
             return [
                 'session_id' => $session->id,
-                'date' => $session->start_at->toIso8601String(), // Trả về ngày giờ theo chuẩn quốc tế
-                'status' => $status,
+                'date' => $session->start_at->toIso8601String(),
+                'status' => $status, // Sẽ là 'present', 'late', 'absent', hoặc 'pending'
             ];
         });
 
