@@ -6,6 +6,7 @@ import '../utils/config.dart';
 class AttendanceService {
   final _dio = ApiClient().dio;
 
+  // ===================== QR RESOLVE =====================
   Future<Map<String, dynamic>> resolveQr(String token) async {
     final res = await _dio.get(
       AppConfig.studentResolveQrPath,
@@ -15,6 +16,7 @@ class AttendanceService {
     return Map<String, dynamic>.from(res.data);
   }
 
+  // ===================== CHECK-IN =====================
   Future<void> checkIn({
     required int sessionId,
     required String status,
@@ -40,6 +42,7 @@ class AttendanceService {
     );
   }
 
+  // ===================== CREATE SESSION (TEACHER) =====================
   Future<Map<String, dynamic>> createSession({
     required int classSectionId,
     required DateTime startAt,
@@ -65,5 +68,36 @@ class AttendanceService {
       options: Options(headers: {'Accept': 'application/json'}),
     );
     return Map<String, dynamic>.from(res.data);
+  }
+
+  // ===================== QR CHECK-IN HANDLER =====================
+  /// Xử lý khi sinh viên quét mã QR
+  /// [qrData] là chuỗi đọc từ mã QR, có thể chứa token hoặc sessionId
+  Future<String> handleQrCheckIn(String qrData) async {
+    try {
+      // Nếu QR chứa token, resolve token -> sessionId
+      if (qrData.startsWith("attendance_token_")) {
+        final token = qrData.replaceFirst("attendance_token_", "");
+        final resolved = await resolveQr(token);
+        final sessionId = resolved['session_id'];
+        await checkIn(sessionId: sessionId, status: "present");
+        return "✅ Điểm danh thành công!";
+      }
+
+      // Nếu QR chứa sessionId trực tiếp
+      else if (qrData.startsWith("attendance_session_")) {
+        final sessionId = int.tryParse(qrData.replaceFirst("attendance_session_", ""));
+        if (sessionId == null) return "❌ Mã QR không hợp lệ!";
+        await checkIn(sessionId: sessionId, status: "present");
+        return "✅ Điểm danh thành công!";
+      }
+
+      // QR không đúng định dạng
+      else {
+        return "❌ Mã QR không hợp lệ!";
+      }
+    } catch (e) {
+      return "❌ Lỗi khi điểm danh: $e";
+    }
   }
 }

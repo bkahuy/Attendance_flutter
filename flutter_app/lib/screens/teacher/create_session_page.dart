@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../services/attendance_service.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import 'qr_screen.dart';
 
 class CreateSessionPage extends StatefulWidget {
@@ -13,21 +15,20 @@ class _CreateSessionPageState extends State<CreateSessionPage> {
   final _passController = TextEditingController();
   TimeOfDay? _startTime;
   TimeOfDay? _endTime;
+  bool _loading = false;
+
+  final _attendanceService = AttendanceService();
 
   Future<void> _pickStartTime() async {
     final picked = await showTimePicker(
       context: context,
       initialTime: _startTime ?? TimeOfDay.now(),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: Colors.deepPurpleAccent,
-            ),
-          ),
-          child: child!,
-        );
-      },
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: const ColorScheme.light(primary: Colors.deepPurpleAccent),
+        ),
+        child: child!,
+      ),
     );
     if (picked != null) setState(() => _startTime = picked);
   }
@@ -36,18 +37,55 @@ class _CreateSessionPageState extends State<CreateSessionPage> {
     final picked = await showTimePicker(
       context: context,
       initialTime: _endTime ?? TimeOfDay.now(),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: Colors.deepPurpleAccent,
-            ),
-          ),
-          child: child!,
-        );
-      },
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: const ColorScheme.light(primary: Colors.deepPurpleAccent),
+        ),
+        child: child!,
+      ),
     );
     if (picked != null) setState(() => _endTime = picked);
+  }
+
+  Future<void> _createSession() async {
+    if (_startTime == null || _endTime == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Vui lòng chọn thời gian bắt đầu và kết thúc')),
+      );
+      return;
+    }
+
+    setState(() => _loading = true);
+    try {
+      final now = DateTime.now();
+      final startAt = DateTime(now.year, now.month, now.day, _startTime!.hour, _startTime!.minute);
+      final endAt = DateTime(now.year, now.month, now.day, _endTime!.hour, _endTime!.minute);
+
+      final session = await AttendanceService().createSession(
+        classSectionId: widget.schedule['class_section_id'],
+        startAt: startAt,
+        endAt: endAt,
+        camera: true,
+        gps: false,
+        password: _passController.text.isEmpty ? null : _passController.text,
+      );
+
+      if (!mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => ShowQrPage(session: session)),
+      );
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Phiên điểm danh đã được tạo thành công!')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Lỗi khi tạo phiên: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   @override
@@ -66,10 +104,6 @@ class _CreateSessionPageState extends State<CreateSessionPage> {
         backgroundColor: Colors.deepPurpleAccent,
         foregroundColor: Colors.white,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
-        ),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -77,7 +111,7 @@ class _CreateSessionPageState extends State<CreateSessionPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 🔹 Header thông tin lớp
+              // 🔹 Thông tin lớp
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
@@ -96,60 +130,32 @@ class _CreateSessionPageState extends State<CreateSessionPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.school, color: Colors.deepPurpleAccent, size: 20),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'Môn học: $course',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        const Icon(Icons.room, color: Colors.deepPurpleAccent, size: 20),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'Phòng: $room',
-                            style: const TextStyle(fontSize: 14),
-                          ),
-                        ),
-                      ],
-                    ),
+                    Row(children: [
+                      const Icon(Icons.school, color: Colors.deepPurpleAccent, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text('Môn học: $course',
+                            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+                      ),
+                    ]),
                     const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        const Icon(Icons.access_time, color: Colors.deepPurpleAccent, size: 20),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'Thời gian: $start - $end',
-                            style: const TextStyle(fontSize: 14),
-                          ),
-                        ),
-                      ],
-                    ),
+                    Row(children: [
+                      const Icon(Icons.class_, color: Colors.deepPurpleAccent, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(child: Text('Lớp: $className')),
+                    ]),
                     const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Icon(Icons.class_, color: Colors.deepPurpleAccent, size: 20),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'Lớp: $className',
-                            style: const TextStyle(fontSize: 14),
-                          ),
-                        ),
-                      ],
-                    ),
+                    Row(children: [
+                      const Icon(Icons.room, color: Colors.deepPurpleAccent, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(child: Text('Phòng: $room')),
+                    ]),
+                    const SizedBox(height: 8),
+                    Row(children: [
+                      const Icon(Icons.access_time, color: Colors.deepPurpleAccent, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(child: Text('Giờ học: $start - $end')),
+                    ]),
                   ],
                 ),
               ),
@@ -170,52 +176,19 @@ class _CreateSessionPageState extends State<CreateSessionPage> {
                     ),
                   ],
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(Icons.lock, color: Colors.deepPurpleAccent, size: 20),
-                        const SizedBox(width: 8),
-                        const Text(
-                          'Mật khẩu điểm danh',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: _passController,
-                      obscureText: true,
-                      decoration: InputDecoration(
-                        hintText: 'Nhập mật khẩu cho phiên điểm danh...',
-                        filled: true,
-                        fillColor: Colors.grey[50],
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: Colors.grey[300]!),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: Colors.grey[300]!),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Colors.deepPurpleAccent),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                      ),
-                    ),
-                  ],
+                child: TextField(
+                  controller: _passController,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    prefixIcon: Icon(Icons.lock, color: Colors.deepPurpleAccent),
+                    labelText: 'Mật khẩu điểm danh (tuỳ chọn)',
+                    border: OutlineInputBorder(),
+                  ),
                 ),
               ),
-
               const SizedBox(height: 24),
 
-              // 🔹 Chọn giờ bắt đầu / kết thúc
+              // 🔹 Giờ bắt đầu - kết thúc
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -233,17 +206,12 @@ class _CreateSessionPageState extends State<CreateSessionPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
+                    const Row(
                       children: [
                         Icon(Icons.timer, color: Colors.deepPurpleAccent, size: 20),
-                        const SizedBox(width: 8),
-                        const Text(
-                          'Thời gian điểm danh',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 16,
-                          ),
-                        ),
+                        SizedBox(width: 8),
+                        Text('Thời gian điểm danh',
+                            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
                       ],
                     ),
                     const SizedBox(height: 16),
@@ -260,8 +228,8 @@ class _CreateSessionPageState extends State<CreateSessionPage> {
                                   : 'Bắt đầu: ${_startTime!.format(context)}',
                             ),
                             style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 14),
                               side: const BorderSide(color: Colors.deepPurpleAccent),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
                             ),
                           ),
                         ),
@@ -276,8 +244,8 @@ class _CreateSessionPageState extends State<CreateSessionPage> {
                                   : 'Kết thúc: ${_endTime!.format(context)}',
                             ),
                             style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 14),
                               side: const BorderSide(color: Colors.deepPurpleAccent),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
                             ),
                           ),
                         ),
@@ -288,37 +256,27 @@ class _CreateSessionPageState extends State<CreateSessionPage> {
               ),
 
               const SizedBox(height: 32),
-
-              // 🔹 Nút tạo mã QR
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
-                  icon: const Icon(Icons.qr_code, color: Colors.white),
+                  icon: _loading
+                      ? const SizedBox(
+                    height: 18,
+                    width: 18,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2,
+                    ),
+                  )
+                      : const Icon(Icons.qr_code, color: Colors.white),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.deepPurpleAccent,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    elevation: 2,
                   ),
-                  onPressed: () {
-                    // TODO: Gọi API tạo phiên điểm danh và hiển thị mã QR
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => ShowQrPage(session: create),
-                      ),
-                    );
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          'Điểm danh từ ${_startTime?.format(context) ?? '--:--'} đến ${_endTime?.format(context) ?? '--:--'}',
-                        ),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
-                  },
+                  onPressed: _loading ? null : _createSession, // 👈 Gọi hàm tạo phiên
                   label: const Text(
                     'Tạo mã QR và bắt đầu điểm danh',
                     style: TextStyle(
@@ -329,7 +287,6 @@ class _CreateSessionPageState extends State<CreateSessionPage> {
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
             ],
           ),
         ),
