@@ -27,13 +27,7 @@ class SettingsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
 
-        backgroundColor: Colors.deepPurple.shade200,
-        foregroundColor: Colors.white,
-        centerTitle: true,
-        elevation: 0,
-      ),
       backgroundColor: Colors.white,
       body: SafeArea(
         child: Padding(
