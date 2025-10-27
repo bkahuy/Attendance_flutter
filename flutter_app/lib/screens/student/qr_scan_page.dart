@@ -35,13 +35,13 @@ class _QrScanPageState extends State<QrScanPage> {
       if (widget.returnData) {
         // Trả kết quả về CourseDetailPage
         Navigator.pop(context, token);
-      } else {
-        final data = await AttendanceService().resolveQr(token);
-        if (!mounted) return;
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => StudentCheckinPage(session: data)),
-        );
-      }
+       } //else {
+      //   final data = await AttendanceService().resolveQr(token);
+      //   if (!mounted) return;
+      //   Navigator.of(context).pushReplacement(
+      //     MaterialPageRoute(builder: (_) => StudentCheckinPage(session: data)),
+      //   );
+      // }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

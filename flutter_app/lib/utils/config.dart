@@ -9,4 +9,5 @@ class AppConfig {
   static const String studentSchedulePath = '/api/student/schedule';
   static const String studentResolveQrPath = '/api/attendance/resolve-qr';
   static const String studentCheckinPath = '/api/attendance/checkin';
+  static const String studentHistoryPath = '/api/student/class-sections';
 }

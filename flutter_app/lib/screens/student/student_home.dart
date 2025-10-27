@@ -7,6 +7,9 @@ import 'qr_scan_page.dart';
 import 'package:intl/intl.dart';
 import 'course_detail_page.dart';
 import '../setting_page.dart';
+import 'face_scan_page.dart'; // 2. Thêm file quét mặt
+import 'student_checkin_loading_page.dart'; // 3. Thêm file tải trung gian
+import 'dart:io';
 
 class StudentHome extends StatefulWidget {
   final AppUser user;
@@ -99,23 +102,53 @@ class _StudentHomeState extends State<StudentHome> {
           selectedItemColor: Colors.black,
           unselectedItemColor: Colors.black54,
           type: BottomNavigationBarType.fixed,
-          // 👇 3. SỬA LẠI HOÀN TOÀN LOGIC ONTAP
           onTap: (index) async {
-            // Nếu nhấn vào icon QR (vị trí 1)
+            // --- XỬ LÝ NHẤN VÀO ICON QR (index 1) ---
             if (index == 1) {
+
+              // 1. Mở trang Quét QR (dùng file của bạn) và đợi kết quả (token)
+              // ‼️ Chú ý: Chúng ta gọi với returnData: true
+              final String? qrToken = await Navigator.push<String>(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const QrScanPage(returnData: true),
+                ),
+              );
+
+              // 2. Nếu người dùng bấm Back, dừng lại
+              if (qrToken == null || !context.mounted) return;
+
+              // 3. Mở trang Quét Mặt (file mới) và đợi kết quả (ảnh)
+              final File? facePhoto = await Navigator.push<File>(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const FaceScanPage(),
+                ),
+              );
+
+              // 4. Nếu người dùng bấm Back, dừng lại
+              if (facePhoto == null || !context.mounted) return;
+
+              // 5. Mở trang TẢI DỮ LIỆU TRUNG GIAN (file mới)
+              // Trang này sẽ giải mã QR, lấy session, rồi chuyển tiếp
+              // sang StudentCheckinPage (file của bạn)
               await Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const QrScanPage()),
+                MaterialPageRoute(
+                  builder: (_) => StudentCheckinLoadingPage(
+                    qrToken: qrToken,
+                    facePhoto: facePhoto,
+                  ),
+                ),
               );
             }
-            // Nếu nhấn vào icon Cài đặt (vị trí 2)
+            // --- XỬ LÝ NHẤN VÀO ICON CÀI ĐẶT (index 2) ---
             else if (index == 2) {
               await Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const SettingsPage()),
               );
             }
-            // Nếu nhấn vào Home (vị trí 0), không làm gì cả
           },
           items: const [
             BottomNavigationBarItem(
@@ -307,7 +340,7 @@ class _StudentHomeState extends State<StudentHome> {
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                       subtitle: Text(
-                        'Phòng: ${s['room_name'] ?? '--'}',
+                        'Phòng: ${s['room'] ?? '--'}',
                         style: const TextStyle(fontSize: 14),
                       ),
                       trailing: Row(

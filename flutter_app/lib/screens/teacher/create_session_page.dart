@@ -290,45 +290,45 @@ class _CreateSessionPageState extends State<CreateSessionPage> {
               const SizedBox(height: 32),
 
               // 🔹 Nút tạo mã QR
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  icon: const Icon(Icons.qr_code, color: Colors.white),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.deepPurpleAccent,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    elevation: 2,
-                  ),
-                  onPressed: () {
-                    // TODO: Gọi API tạo phiên điểm danh và hiển thị mã QR
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => ShowQrPage(session: create),
-                      ),
-                    );
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          'Điểm danh từ ${_startTime?.format(context) ?? '--:--'} đến ${_endTime?.format(context) ?? '--:--'}',
-                        ),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
-                  },
-                  label: const Text(
-                    'Tạo mã QR và bắt đầu điểm danh',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                      fontSize: 16,
-                    ),
-                  ),
-                ),
-              ),
+              // SizedBox(
+              //   width: double.infinity,
+              //   child: ElevatedButton.icon(
+              //     icon: const Icon(Icons.qr_code, color: Colors.white),
+              //     style: ElevatedButton.styleFrom(
+              //       backgroundColor: Colors.deepPurpleAccent,
+              //       padding: const EdgeInsets.symmetric(vertical: 16),
+              //       shape: RoundedRectangleBorder(
+              //         borderRadius: BorderRadius.circular(12),
+              //       ),
+              //       elevation: 2,
+              //     ),
+              //     onPressed: () {
+              //       // TODO: Gọi API tạo phiên điểm danh và hiển thị mã QR
+              //       Navigator.push(
+              //         context,
+              //         MaterialPageRoute(
+              //           builder: (_) => ShowQrPage(session: create),
+              //         ),
+              //       );
+              //       ScaffoldMessenger.of(context).showSnackBar(
+              //         SnackBar(
+              //           content: Text(
+              //             'Điểm danh từ ${_startTime?.format(context) ?? '--:--'} đến ${_endTime?.format(context) ?? '--:--'}',
+              //           ),
+              //           backgroundColor: Colors.green,
+              //         ),
+              //       );
+              //     },
+              //     label: const Text(
+              //       'Tạo mã QR và bắt đầu điểm danh',
+              //       style: TextStyle(
+              //         fontWeight: FontWeight.bold,
+              //         color: Colors.white,
+              //         fontSize: 16,
+              //       ),
+              //     ),
+              //   ),
+              // ),
               const SizedBox(height: 16),
             ],
           ),
