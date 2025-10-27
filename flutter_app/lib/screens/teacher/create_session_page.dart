@@ -276,7 +276,7 @@ class _CreateSessionPageState extends State<CreateSessionPage> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  onPressed: _loading ? null : _createSession, // 👈 Gọi hàm tạo phiên
+                  onPressed: _loading ? null : _createSession, // Gọi hàm tạo phiên
                   label: const Text(
                     'Tạo mã QR và bắt đầu điểm danh',
                     style: TextStyle(

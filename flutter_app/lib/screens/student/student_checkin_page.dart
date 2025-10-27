@@ -7,7 +7,8 @@ import '../../services/attendance_service.dart';
 
 class StudentCheckinPage extends StatefulWidget {
   final Map<String, dynamic> session;
-  const StudentCheckinPage({super.key, required this.session});
+  final File photo;
+  const StudentCheckinPage({super.key, required this.session,required this.photo,});
 
   @override
   State<StudentCheckinPage> createState() => _StudentCheckinPageState();
@@ -25,7 +26,7 @@ class _StudentCheckinPageState extends State<StudentCheckinPage> {
   Future<void> _pickPhoto() async {
     // Chức năng chụp ảnh vẫn được giữ lại để sử dụng ở logic nền
     final picker = ImagePicker();
-    final img = await picker.pickImage(source: ImageSource.camera, maxWidth: 1280, imageQuality: 85);
+    final img = await picker.pickImage(source: ImageSource.camera, maxWidth: 1280, imageQuality: 85,preferredCameraDevice: CameraDevice.front,);
     if (img != null) {
       setState(() {
         photo = File(img.path);
@@ -36,9 +37,10 @@ class _StudentCheckinPageState extends State<StudentCheckinPage> {
   void initState() {
     super.initState();
     // Nếu đã có ảnh truyền sẵn từ CourseDetailPage, gán luôn
-    if (widget.session['photo_path'] != null) {
-      photo = File(widget.session['photo_path']);
-    }
+    photo = widget.photo;
+    // if (widget.session['photo_path'] != null) {
+    //   photo = File(widget.session['photo_path']);
+    // }
   }
   Future<void> _getLocation() async {
     final enabled = await Geolocator.isLocationServiceEnabled();
@@ -78,15 +80,15 @@ class _StudentCheckinPageState extends State<StudentCheckinPage> {
     }
 
     // 👉 Chỉ chụp ảnh nếu chưa có
-    if (photo == null) {
-      await _pickPhoto();
-      if (photo == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Bạn chưa chụp ảnh xác nhận')),
-        );
-        return;
-      }
-    }
+    // if (photo == null) {
+    //   await _pickPhoto();
+    //   if (photo == null) {
+    //     ScaffoldMessenger.of(context).showSnackBar(
+    //       const SnackBar(content: Text('Bạn chưa chụp ảnh xác nhận')),
+    //     );
+    //     return;
+    //   }
+    // }
 
     await _getLocation();
 
@@ -109,7 +111,7 @@ class _StudentCheckinPageState extends State<StudentCheckinPage> {
       // ✅ Trở về trang chi tiết môn học và cập nhật trạng thái
       Navigator.of(context).pop({
         'checkedIn': true,
-        'status': status,
+        'status': statusValue,
       });
     } catch (e) {
       if (!mounted) return;
@@ -157,7 +159,15 @@ class _StudentCheckinPageState extends State<StudentCheckinPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Máy ảnh'),
+        // Thêm nút Back (quay lại trang CourseDetail)
+        leading: const BackButton(color: Colors.black),
+        // Đổi tiêu đề cho rõ ràng hơn
+        title: const Text(
+          'Xác nhận điểm danh',
+          style: TextStyle(color: Colors.black),
+        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
       ),
 
       // 🔹 Nội dung chính
@@ -184,14 +194,42 @@ class _StudentCheckinPageState extends State<StudentCheckinPage> {
                 const SizedBox(height: 16),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Text(
-                      formattedDate,
-                      style: TextStyle(fontSize: 16, color: Colors.grey[800]),
+                    // Ngày tháng
+                    Flexible(
+                      flex: 3,
+                      child: Text(
+                        formattedDate,
+                        style: TextStyle(fontSize: 16, color: Colors.grey[800]),
+                      ),
                     ),
-                    Text(
-                      photoName,
-                      style: TextStyle(fontSize: 16, color: Colors.grey[800]),
+                    const SizedBox(width: 16),
+                    // Tên ảnh và Nút chụp lại
+                    Flexible(
+                      flex: 4, // Cho nhiều không gian hơn
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end, // Đẩy sang phải
+                        children: [
+                          // Tên file (linh hoạt)
+                          Flexible(
+                            child: Text(
+                              photoName,
+                              style: TextStyle(
+                                  fontSize: 14, color: Colors.grey[800]),
+                              overflow: TextOverflow.ellipsis, // Chống tràn text
+                              textAlign: TextAlign.right,
+                            ),
+                          ),
+                          // Nút "Quay lại Camera" (Chụp lại)
+                          IconButton(
+                            icon: const Icon(Icons.camera_alt_outlined),
+                            color: Colors.grey[900],
+                            tooltip: 'Chụp lại',
+                            onPressed: _pickPhoto, // Gọi lại hàm chụp ảnh
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -247,47 +285,6 @@ class _StudentCheckinPageState extends State<StudentCheckinPage> {
               ],
             ),
           ),
-        ),
-      ),
-
-      // 🔹 Thêm thanh điều hướng dưới cùng (giống StudentHome)
-      bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
-          color: Color(0xFF9C8CFC),
-        ),
-        child: BottomNavigationBar(
-          currentIndex: 0,
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          selectedItemColor: Colors.black,
-          unselectedItemColor: Colors.black54,
-          type: BottomNavigationBarType.fixed,
-          onTap: (index) async {
-            if (index == 0) {
-              // Quay lại trang chính (StudentHome)
-              Navigator.popUntil(context, (route) => route.isFirst);
-            } else if (index == 1) {
-              // Trang QR
-              await Navigator.pushNamed(context, '/qr');
-            } else if (index == 2) {
-              // Trang Cài đặt
-              await Navigator.pushNamed(context, '/settings');
-            }
-          },
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home_outlined),
-              label: '',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.qr_code_2_outlined),
-              label: '',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.settings_outlined),
-              label: '',
-            ),
-          ],
         ),
       ),
     );

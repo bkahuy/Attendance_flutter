@@ -25,7 +25,6 @@ Route::middleware(['auth:api','role:teacher'])->group(function(){
 
 // Student-only APIs['error' => 'SERVER_ERROR', 'hint' => $e->getMessage()], 500);
 Route::middleware(['auth:api','role:student'])->group(function(){
-    // Sửa lại cho đúng
     Route::get('/student/schedule', [StudentController::class, 'schedule']);
     Route::post('attendance/checkin',[StudentController::class,'checkIn']);
     Route::get('stats/student',[StatsController::class,'studentOverview']);

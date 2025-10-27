@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 
 class StudentController extends Controller
 {
@@ -16,69 +17,68 @@ class StudentController extends Controller
      */
     public function schedule(Request $request)
     {
-        // Lấy ngày từ request, nếu không có thì dùng ngày hôm nay
+        // 1. Lấy ngày và thông tin sinh viên (giữ nguyên)
         $date = $request->input('date') ?? now()->toDateString();
         $user = auth('api')->user();
-
-        // Tìm thông tin sinh viên từ user_id
         $student = Student::where('user_id', $user->id)->firstOrFail();
 
-        // Chuyển đổi thứ trong tuần từ chuẩn Carbon (0=CN) sang chuẩn của bạn (0=T2)
-        $carbonWeekday = Carbon::parse($date)->dayOfWeek;
+        // 2. Chuyển đổi thứ (giữ nguyên)
+        // Chuẩn Carbon: 0=CN, 1=T2, ..., 6=T7
+        // Chuẩn của bạn: 0=T2, 1=T3, ..., 6=CN
+        $carbonDate = Carbon::parse($date);
+        $carbonWeekday = $carbonDate->dayOfWeek;
         $weekday = ($carbonWeekday === 0) ? 6 : $carbonWeekday - 1;
 
-        // Lấy danh sách các lớp học của sinh viên
-        $classes = $student->classes()
-            ->with([
-                'course', // Lấy thông tin môn học
-                'schedules' => function ($query) use ($date, $weekday) {
-                    // Chỉ lấy các lịch học (schedules) khớp với ngày đang chọn
-                    $query->where(function ($q) use ($date) { // Lịch cố định (không lặp lại)
-                        $q->where('recurring_flag', 0)->whereDate('date', $date);
-                    })->orWhere(function ($q) use ($weekday) { // Lịch lặp lại theo thứ
-                        $q->where('recurring_flag', 1)->where('weekday', $weekday);
-                    });
-                }
-            ])
-            ->whereHas('schedules', function ($query) use ($date, $weekday) {
-                // Lọc để chỉ giữ lại những lớp (classes) có lịch học trong ngày hôm đó
-                $query->where(function ($q) use ($date) {
-                    $q->where('recurring_flag', 0)->whereDate('date', $date);
-                })->orWhere(function ($q) use ($weekday) {
-                    $q->where('recurring_flag', 1)->where('weekday', $weekday);
-                });
-            })
+        // 3. Query thẳng vào VIEW 'vw_student_schedule' (PHẦN THAY THẾ)
+        $schedules = DB::table('vw_student_schedule')
+            ->where('student_id', $student->id)  // Lọc đúng sinh viên
+            ->where('weekday', $weekday)         // Lọc đúng thứ trong tuần
+            ->whereDate('start_date', '<=', $date) // Lọc ngày bắt đầu
+            ->whereDate('end_date', '>=', $date)   // Lọc ngày kết thúc
+            ->orderBy('start_time')              // Sắp xếp theo giờ bắt đầu
             ->get();
 
-        // Biến đổi dữ liệu để tạo ra một danh sách lịch học phẳng, đúng cấu trúc
-        $schedules = $classes->flatMap(function ($class) {
-            // Bỏ qua nếu lớp không có lịch học nào (đã được lọc bởi whereHas)
-            if (is_null($class->schedules)) {
-                return [];
-            }
+        // 4. Biến đổi dữ liệu (vẫn cần làm để ghép ngày + giờ)
+        $formattedSchedules = $schedules->map(function ($schedule) use ($carbonDate) {
 
-            // Với mỗi lịch học, tạo một object mới chứa thông tin cần thiết
-            return $class->schedules->map(function ($schedule) use ($class) {
-                return [
-                    'class_section_id' => $class->id,
-                    'course_code' => $class->course->course_code ?? '',
-                    'course_name' => $class->course->name ?? 'N/A',
-                    'class_name'  => $class->name,
-                    'room'        => $schedule->room, // ✅ Dữ liệu phòng học đây rồi!
-                    'start_time'  => Carbon::parse($schedule->start_time)->format('Y-m-d H:i:s'),
-                    'end_time'    => Carbon::parse($schedule->end_time)->format('Y-m-d H:i:s'),
-                    // Bạn có thể thêm các trường dữ liệu khác của schedule ở đây nếu cần
-                    'schedule_id' => $schedule->id,
-                ];
-            });
+            // Ghép NGÀY đang chọn ($carbonDate) với GIỜ từ DB ($schedule->start_time)
+            $dbTime = Carbon::parse($schedule->start_time);
+            $startTime = $carbonDate->copy()->setTime(
+                $dbTime->hour,
+                $dbTime->minute,
+                $dbTime->second
+            );
+
+            // Làm tương tự cho end_time
+            $dbEndTime = Carbon::parse($schedule->end_time);
+            $endTime = $carbonDate->copy()->setTime(
+                $dbEndTime->hour,
+                $dbEndTime->minute,
+                $dbEndTime->second
+            );
+
+            return [
+                // Đảm bảo view của bạn có cột 'class_section_id'
+                'class_section_id' => $schedule->class_section_id,
+                'course_code' => $schedule->course_code,
+                'course_name' => $schedule->course_name,
+                'class_name'  => $schedule->course_code, // Dùng 'term' từ view
+                'room'        => $schedule->room,
+                'start_time'  => $startTime->toIso8601String(), // "2025-10-22T08:00:00Z"
+                'end_time'    => $endTime->toIso8601String(),   // "2025-10-22T10:00:00Z"
+
+                // Các thông tin khác nếu Flutter cần
+                // 'schedule_id' => $schedule->id, // (Nếu bạn có cột này trong view)
+            ];
         });
 
-        // Trả về JSON theo cấu trúc mà Flutter mong đợi
+        // 5. Trả về JSON (giữ nguyên)
         return response()->json([
             'success' => true,
-            'data' => $schedules->values(),
+            'data' => $formattedSchedules,
         ]);
     }
+
 
     /**
      * 📸 Xử lý việc check-in điểm danh của sinh viên.
@@ -145,23 +145,20 @@ class StudentController extends Controller
             // Tìm bản ghi điểm danh của sinh viên trong buổi học này
             $record = $session->records()->where('student_id', $student->id)->first();
 
-            $status = 'pending'; // Trạng thái mặc định là chưa có dữ liệu
+            $status = 'pending'; // Mặc định là 'pending'
 
             if ($record) {
-                // Nếu có bản ghi, lấy trạng thái từ đó (present, late, absent)
+                // Nếu có bản ghi, lấy trạng thái từ đó
                 $status = $record->status;
-            } elseif (now()->gt($session->end_at)) {
-                // Nếu không có bản ghi và buổi học đã qua -> Vắng
-                $status = 'absent';
-            } elseif (now()->between($session->start_at, $session->end_at)) {
-                // Nếu đang trong giờ học mà chưa điểm danh -> có thể điểm danh
-                $status = 'can_attend';
             }
+
+            // XÓA BỎ toàn bộ phần logic elseif.
+            // Hãy để Flutter tự quyết định dựa trên ngày và trạng thái 'pending'.
 
             return [
                 'session_id' => $session->id,
-                'date' => $session->start_at->toIso8601String(), // Trả về ngày giờ theo chuẩn quốc tế
-                'status' => $status,
+                'date' => $session->start_at->toIso8601String(),
+                'status' => $status, // Sẽ là 'present', 'late', 'absent', hoặc 'pending'
             ];
         });
 
