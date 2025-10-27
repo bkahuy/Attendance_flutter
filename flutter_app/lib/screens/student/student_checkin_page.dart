@@ -7,7 +7,8 @@ import '../../services/attendance_service.dart';
 
 class StudentCheckinPage extends StatefulWidget {
   final Map<String, dynamic> session;
-  const StudentCheckinPage({super.key, required this.session});
+  final File photo;
+  const StudentCheckinPage({super.key, required this.session,required this.photo,});
 
   @override
   State<StudentCheckinPage> createState() => _StudentCheckinPageState();
@@ -36,9 +37,10 @@ class _StudentCheckinPageState extends State<StudentCheckinPage> {
   void initState() {
     super.initState();
     // Nếu đã có ảnh truyền sẵn từ CourseDetailPage, gán luôn
-    if (widget.session['photo_path'] != null) {
-      photo = File(widget.session['photo_path']);
-    }
+    photo = widget.photo;
+    // if (widget.session['photo_path'] != null) {
+    //   photo = File(widget.session['photo_path']);
+    // }
   }
   Future<void> _getLocation() async {
     final enabled = await Geolocator.isLocationServiceEnabled();
@@ -78,15 +80,15 @@ class _StudentCheckinPageState extends State<StudentCheckinPage> {
     }
 
     // 👉 Chỉ chụp ảnh nếu chưa có
-    if (photo == null) {
-      await _pickPhoto();
-      if (photo == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Bạn chưa chụp ảnh xác nhận')),
-        );
-        return;
-      }
-    }
+    // if (photo == null) {
+    //   await _pickPhoto();
+    //   if (photo == null) {
+    //     ScaffoldMessenger.of(context).showSnackBar(
+    //       const SnackBar(content: Text('Bạn chưa chụp ảnh xác nhận')),
+    //     );
+    //     return;
+    //   }
+    // }
 
     await _getLocation();
 
