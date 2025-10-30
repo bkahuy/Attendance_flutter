@@ -7,6 +7,7 @@ import '../../utils/config.dart';
 import '../../models/user.dart';
 import 'create_session_page.dart';
 import '../setting_page.dart';
+import 'history_page.dart';
 
 class TeacherHome extends StatefulWidget {
   final AppUser user;
@@ -76,7 +77,7 @@ class _TeacherHomeState extends State<TeacherHome> {
           onRefresh: () => _load(_selectedDate),
           selectedDate: _selectedDate,
         ),
-        const _HistoryPlaceholder(),
+        const HistoryPage(),
         const SettingsPage(),
       ];
 
@@ -510,13 +511,15 @@ class ScheduleCard extends StatelessWidget {
 // ============================================================================
 // Placeholder cho tab Lịch sử (bạn thay bằng page thật sau)
 // ============================================================================
-class _HistoryPlaceholder extends StatelessWidget {
-  const _HistoryPlaceholder();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: Text('Lịch sử điểm danh (đang để placeholder)'),
-    );
-  }
-}
+// class _HistoryPlaceholder extends StatelessWidget {
+//   const _HistoryPlaceholder();
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return const Center(
+//       child: Text(
+//         'Chưa có lịch sử',
+//         style: TextStyle(fontSize: 24,
+//     );
+//   }
+// }
