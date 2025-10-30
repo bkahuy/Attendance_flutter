@@ -102,7 +102,7 @@ class TeacherController extends Controller
             'schedule_id'      => 'nullable|exists:schedules,id',
         ]);
 
-        // Bắt buộc đăng nhập JWT để biết ai tạo
+        // Xác thực người tạo (giảng viên)
         $creatorId = auth('api')->id();
         if (!$creatorId) {
             return response()->json(['error' => 'UNAUTHENTICATED'], 401);
@@ -115,30 +115,64 @@ class TeacherController extends Controller
             unset($data['password']);
         }
 
-        // Lưu JSON đúng kiểu
-        // Bảo đảm model AttendanceSession có $casts = ['mode_flags' => 'array'];
-        $session = AttendanceSession::create($data);
+        // ===== PHẦN THÊM MỚI: kiểm tra nếu có phiên trước đó trong cùng lớp học phần hôm nay =====
+        $today = now()->toDateString();
 
-        // Nếu bật QR trong mode_flags -> tạo token 15 phút
+        $existingSession = AttendanceSession::where('class_section_id', $data['class_section_id'])
+            ->whereDate('created_at', $today)
+            ->first();
+
+        if ($existingSession) {
+            // Nếu có thì cập nhật thay vì tạo mới
+            $existingSession->update([
+                'class_section_id' => $data['class_section_id'],
+                'start_at'   => $data['start_at'],
+                'end_at'     => $data['end_at'],
+                'mode_flags' => $data['mode_flags'],
+                'password_hash' => $data['password_hash'] ?? null,
+                'schedule_id' => $data['schedule_id'] ?? null,
+                'updated_at' => now(),
+            ]);
+
+            $session = $existingSession;
+            $isNew = false;
+        } else {
+            // Nếu chưa có thì tạo mới
+            $session = AttendanceSession::create($data);
+            $isNew = true;
+        }
+
+        // ===== Tạo hoặc cập nhật mã QR =====
         $qr = null;
         $mode = $data['mode_flags'] ?? [];
+
         if (!empty($mode['qr'])) {
+            // Tạo token QR mới
             $token = hash('sha256', Str::random(64));
+
+            // Nếu đã có phiên -> xóa token cũ (nếu có)
+            if (!$isNew) {
+                $session->qrTokens()->delete();
+            }
+
             $session->qrTokens()->create([
                 'token'      => $token,
                 'expires_at' => now()->addMinutes(15),
             ]);
 
-            // NOTE: sửa deep_link này KHỚP với route student dùng để resolve
             $qr = [
                 'token'     => $token,
-                // Nếu app Flutter đang gọi /api/attendance/resolve-qr
                 'deep_link' => url("/api/attendance/resolve-qr?token={$token}"),
             ];
         }
 
-        return response()->json(['session' => $session, 'qr' => $qr], 201);
+        return response()->json([
+            'message' => $isNew ? 'Tạo phiên điểm danh thành công.' : 'Đã cập nhật phiên điểm danh thành công.',
+            'session' => $session,
+            'qr' => $qr,
+        ], $isNew ? 201 : 200);
     }
+
 
     /**
      * GET /api/attendance/session/{id}
