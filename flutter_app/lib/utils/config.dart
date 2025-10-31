@@ -6,6 +6,8 @@ class AppConfig {
   static const String changePasswordPath = '/api/auth/change-password';
   static const String teacherSchedulePath = '/api/teacher/schedule';
   static const String teacherCreateSessionPath = '/api/attendance/session';
+  static const String attendanceHistory = '/api/attendance/session/search';
+  static const String attendanceHistoryDetail = '/api/attendance/session';
   static const String studentSchedulePath = '/api/student/schedule';
   static const String studentResolveQrPath = '/api/attendance/resolve-qr';
   static const String studentCheckinPath = '/api/attendance/checkin';

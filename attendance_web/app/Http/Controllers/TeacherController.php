@@ -182,4 +182,354 @@ class TeacherController extends Controller
         return AttendanceSession::with(['classSection.course', 'records.student.user'])
             ->findOrFail($id);
     }
+
+    public function getSessionsByClassSection($classSectionId)
+    {
+        try {
+            // Kiểm tra quyền: giảng viên chỉ được xem phiên của lớp mình dạy
+            $teacherUserId = auth('api')->id();
+            if (!$teacherUserId) {
+                return response()->json(['error' => 'UNAUTHENTICATED'], 401);
+            }
+
+            // Kiểm tra class_section có thuộc giảng viên này không
+            $checkPermission = DB::selectOne("
+                SELECT cs.id
+                FROM class_sections cs
+                JOIN teachers t ON t.id = cs.teacher_id
+                WHERE cs.id = ? AND t.user_id = ?
+            ", [$classSectionId, $teacherUserId]);
+
+            if (!$checkPermission) {
+                return response()->json(['error' => 'CLASS_SECTION_NOT_FOUND_OR_NO_PERMISSION'], 403);
+            }
+
+            // Lấy danh sách các phiên điểm danh với thống kê
+            $sessions = DB::select("
+                SELECT
+                    ats.id,
+                    ats.start_at,
+                    ats.end_at,
+                    ats.mode_flags,
+                    ats.created_at,
+                    COUNT(ar.id) as total_records,
+                    SUM(CASE WHEN ar.status = 'present' THEN 1 ELSE 0 END) as present_count,
+                    CASE
+                        WHEN NOW() BETWEEN ats.start_at AND ats.end_at THEN 'active'
+                        WHEN NOW() > ats.end_at THEN 'ended'
+                        ELSE 'upcoming'
+                    END as status
+                FROM attendance_sessions ats
+                LEFT JOIN attendance_records ar ON ar.attendance_session_id = ats.id
+                WHERE ats.class_section_id = ?
+                GROUP BY ats.id, ats.start_at, ats.end_at, ats.mode_flags, ats.created_at
+                ORDER BY ats.created_at DESC
+            ", [$classSectionId]);
+
+            // Chuyển đổi mode_flags từ JSON string sang array
+            $sessions = array_map(function ($session) {
+                return [
+                    'id' => (int) $session->id,
+                    'start_at' => $session->start_at,
+                    'end_at' => $session->end_at,
+                    'mode_flags' => json_decode($session->mode_flags, true),
+                    'created_at' => $session->created_at,
+                    'total_records' => (int) $session->total_records,
+                    'present_count' => (int) $session->present_count,
+                    'status' => $session->status,
+                ];
+            }, $sessions);
+
+            return response()->json([
+                'class_section_id' => (int) $classSectionId,
+                'sessions' => $sessions,
+            ]);
+
+        } catch (\Throwable $e) {
+            Log::error('[teacher.getSessionsByClassSection] ' . $e->getMessage(), [
+                'class_section_id' => $classSectionId
+            ]);
+            return response()->json(['error' => 'SERVER_ERROR', 'hint' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * GET /api/teacher/session/{sessionId}/attendance-records
+     * Lấy danh sách sinh viên điểm danh cho một phiên cụ thể
+     */
+    public function getAttendanceRecords($sessionId)
+    {
+        try {
+            // Kiểm tra quyền: giảng viên chỉ được xem phiên của lớp mình dạy
+            $teacherUserId = auth('api')->id();
+            if (!$teacherUserId) {
+                return response()->json(['error' => 'UNAUTHENTICATED'], 401);
+            }
+
+            // Kiểm tra quyền truy cập session
+            $sessionInfo = DB::selectOne("
+                SELECT
+                    ats.id,
+                    ats.class_section_id,
+                    ats.start_at,
+                    ats.end_at,
+                    cs.teacher_id,
+                    t.user_id as teacher_user_id
+                FROM attendance_sessions ats
+                JOIN class_sections cs ON cs.id = ats.class_section_id
+                JOIN teachers t ON t.id = cs.teacher_id
+                WHERE ats.id = ?
+            ", [$sessionId]);
+
+            if (!$sessionInfo) {
+                return response()->json(['error' => 'SESSION_NOT_FOUND'], 404);
+            }
+
+            if ($sessionInfo->teacher_user_id != $teacherUserId) {
+                return response()->json(['error' => 'NO_PERMISSION'], 403);
+            }
+
+            // Lấy danh sách sinh viên đã điểm danh
+            $attendanceRecords = DB::select("
+                SELECT
+                    ar.id,
+                    ar.student_id,
+                    s.student_code,
+                    u.name as student_name,
+                    u.email,
+                    ar.status,
+                    ar.checked_in_at,
+                    ar.note,
+                    ar.check_in_method
+                FROM attendance_records ar
+                JOIN students s ON s.id = ar.student_id
+                JOIN users u ON u.id = s.user_id
+                WHERE ar.attendance_session_id = ?
+                ORDER BY ar.checked_in_at DESC
+            ", [$sessionId]);
+
+            // Lấy danh sách tất cả sinh viên trong lớp
+            $allStudents = DB::select("
+                SELECT
+                    s.id as student_id,
+                    s.student_code,
+                    u.name as student_name,
+                    u.email
+                FROM class_section_students css
+                JOIN students s ON s.id = css.student_id
+                JOIN users u ON u.id = s.user_id
+                WHERE css.class_section_id = ?
+            ", [$sessionInfo->class_section_id]);
+
+            // Lấy danh sách student_id đã điểm danh
+            $attendedStudentIds = array_map(function($record) {
+                return $record->student_id;
+            }, $attendanceRecords);
+
+            // Sinh viên chưa điểm danh
+            $absentStudents = array_filter($allStudents, function($student) use ($attendedStudentIds) {
+                return !in_array($student->student_id, $attendedStudentIds);
+            });
+
+            $absentStudents = array_map(function($student) {
+                return [
+                    'student_id' => (int) $student->student_id,
+                    'student_code' => $student->student_code,
+                    'student_name' => $student->student_name,
+                    'email' => $student->email,
+                    'status' => 'absent',
+                ];
+            }, array_values($absentStudents));
+
+            // Format attendance records
+            $attendanceRecords = array_map(function($record) {
+                return [
+                    'id' => (int) $record->id,
+                    'student_id' => (int) $record->student_id,
+                    'student_code' => $record->student_code,
+                    'student_name' => $record->student_name,
+                    'email' => $record->email,
+                    'status' => $record->status,
+                    'checked_in_at' => $record->checked_in_at,
+                    'note' => $record->note,
+                    'check_in_method' => $record->check_in_method ?? 'unknown',
+                ];
+            }, $attendanceRecords);
+
+            // Đếm theo status
+            $presentCount = count(array_filter($attendanceRecords, fn($r) => $r['status'] === 'present'));
+            $lateCount = count(array_filter($attendanceRecords, fn($r) => $r['status'] === 'late'));
+
+            return response()->json([
+                'session_id' => (int) $sessionId,
+                'session_info' => [
+                    'start_at' => $sessionInfo->start_at,
+                    'end_at' => $sessionInfo->end_at,
+                    'is_active' => now()->between($sessionInfo->start_at, $sessionInfo->end_at),
+                ],
+                'total_students' => count($allStudents),
+                'present_count' => $presentCount,
+                'late_count' => $lateCount,
+                'absent_count' => count($absentStudents),
+                'attendance_records' => $attendanceRecords,
+                'absent_students' => $absentStudents,
+            ]);
+
+        } catch (\Throwable $e) {
+            Log::error('[teacher.getAttendanceRecords] ' . $e->getMessage(), [
+                'session_id' => $sessionId
+            ]);
+            return response()->json(['error' => 'SERVER_ERROR', 'hint' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * GET /api/teacher/search-attendance-history
+     * Tìm kiếm lịch sử các môn đã có phiên điểm danh
+     * Query params: course_name, class_name, room, time, date_from, date_to
+     */
+    public function searchAttendanceHistory(Request $request)
+    {
+        try {
+            // Kiểm tra quyền giảng viên
+            $teacherUserId = auth('api')->id();
+            if (!$teacherUserId) {
+                return response()->json(['error' => 'UNAUTHENTICATED'], 401);
+            }
+
+            // Lấy các tham số tìm kiếm
+            $courseName = $request->query('course_name');
+            $className = $request->query('class_name');
+            $room = $request->query('room');
+            $time = $request->query('time');
+
+            // Xây dựng câu query với các điều kiện WHERE động
+            $params = [$teacherUserId];
+            $whereConditions = ["t.user_id = ?"];
+
+            if ($courseName) {
+                $whereConditions[] = "(c.name LIKE ?)";
+                $params[] = "%{$courseName}%";
+
+            }
+
+            if ($room) {
+                $whereConditions[] = "cs.room LIKE ?";
+                $params[] = "%{$room}%";
+            }
+
+            if ($time) {
+                $whereConditions[] = "(TIME(ats.start_at) LIKE ? OR TIME(ats.end_at) LIKE ?)";
+                $params[] = "{$time}%";
+                $params[] = "{$time}%";
+            }
+
+
+            $whereClause = implode(' AND ', $whereConditions);
+
+            // Query chính để lấy danh sách phiên điểm danh
+            $sql = "
+                SELECT
+                    ats.id as session_id,
+                    ats.start_at,
+                    ats.end_at,
+                    ats.created_at,
+                    cs.id as class_section_id,
+                    cs.term,
+                    cs.room,
+                    c.code as course_code,
+                    c.name as course_name,
+                    GROUP_CONCAT(DISTINCT cl.name SEPARATOR ', ') as class_names,
+                    CASE
+                        WHEN NOW() BETWEEN ats.start_at AND ats.end_at THEN 'active'
+                        WHEN NOW() > ats.end_at THEN 'ended'
+                        ELSE 'upcoming'
+                    END as status
+                FROM attendance_sessions ats
+                JOIN class_sections cs ON cs.id = ats.class_section_id
+                JOIN courses c ON c.id = cs.course_id
+                JOIN teachers t ON t.id = cs.teacher_id
+                LEFT JOIN class_section_classes csc ON csc.class_section_id = cs.id
+                LEFT JOIN classes cl ON cl.id = csc.class_id
+                WHERE {$whereClause}
+                GROUP BY ats.id, ats.start_at, ats.end_at, ats.created_at,
+                         cs.id, cs.term, cs.room, c.code, c.name
+                ORDER BY ats.created_at DESC
+            ";
+
+            $results = DB::select($sql, $params);
+
+            // Lọc theo class_name nếu có (vì GROUP_CONCAT không thể dùng trong WHERE)
+            if ($className) {
+                $results = array_filter($results, function($session) use ($className) {
+                    return stripos($session->class_names, $className) !== false;
+                });
+                $results = array_values($results);
+            }
+
+            // Lấy thống kê cho mỗi session
+            $results = array_map(function ($session) {
+                // Đếm số lượng điểm danh
+                $stats = DB::selectOne("
+                    SELECT
+                        COUNT(ar.id) as total_records,
+                        SUM(CASE WHEN ar.status = 'present' THEN 1 ELSE 0 END) as present_count,
+                        SUM(CASE WHEN ar.status = 'late' THEN 1 ELSE 0 END) as late_count
+                    FROM attendance_records ar
+                    WHERE ar.attendance_session_id = ?
+                ", [$session->session_id]);
+
+                // Tổng số sinh viên trong lớp
+                $totalStudents = DB::selectOne("
+                    SELECT COUNT(*) as total
+                    FROM class_section_students
+                    WHERE class_section_id = ?
+                ", [$session->class_section_id]);
+
+                $totalStudentsCount = (int) $totalStudents->total;
+                $presentCount = (int) ($stats->present_count ?? 0);
+                $lateCount = (int) ($stats->late_count ?? 0);
+                $totalRecords = (int) ($stats->total_records ?? 0);
+
+                return [
+                    'session_id' => (int) $session->session_id,
+                    'class_section_id' => (int) $session->class_section_id,
+                    'course_code' => $session->course_code,
+                    'course_name' => $session->course_name,
+                    'class_names' => $session->class_names ?? '',
+                    'term' => $session->term ?? '',
+                    'room' => $session->room ?? '',
+                    'start_at' => $session->start_at,
+                    'end_at' => $session->end_at,
+                    'created_at' => $session->created_at,
+                    'status' => $session->status,
+                    'total_students' => $totalStudentsCount,
+                    'total_records' => $totalRecords,
+                    'present_count' => $presentCount,
+                    'late_count' => $lateCount,
+                    'absent_count' => $totalStudentsCount - $totalRecords,
+                    'attendance_rate' => $totalStudentsCount > 0
+                        ? round(($presentCount / $totalStudentsCount) * 100, 2)
+                        : 0,
+                ];
+            }, $results);
+
+            return response()->json([
+                'total' => count($results),
+                'results' => $results,
+                'filters' => [
+                    'course_name' => $courseName,
+                    'class_name' => $className,
+                    'room' => $room,
+                    'time' => $time,
+                ],
+            ]);
+
+        } catch (\Throwable $e) {
+            Log::error('[teacher.searchAttendanceHistory] ' . $e->getMessage(), [
+                'request' => $request->all()
+            ]);
+            return response()->json(['error' => 'SERVER_ERROR', 'hint' => $e->getMessage()], 500);
+        }
+    }
 }

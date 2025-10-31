@@ -1,7 +1,10 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
 import '../api/api_client.dart';
+import '../models/attendance_history.dart';
 import '../utils/config.dart';
+import '../models/session_detail.dart';
+import 'dart:developer'; // Dùng để in log
 
 class AttendanceService {
   final _dio = ApiClient().dio;
@@ -49,11 +52,13 @@ class AttendanceService {
     required DateTime endAt,
     bool camera = true,
     bool gps = false,
+    bool qr = false,
     String? password,
   }) async {
     final mode = {
       if (camera) 'camera': true,
       if (gps) 'gps': true,
+      if (qr) 'qr': true,
       if (password != null && password.isNotEmpty) 'password': password,
     };
 
@@ -87,7 +92,7 @@ class AttendanceService {
       // Nếu QR chứa sessionId trực tiếp
       else if (qrData.startsWith("attendance_session_")) {
         final sessionId = int.tryParse(qrData.replaceFirst("attendance_session_", ""));
-        if (sessionId == null) return "❌ Mã QR không hợp lệ!";
+        if (sessionId == null) return "Mã QR không hợp lệ!";
         await checkIn(sessionId: sessionId, status: "present");
         return "✅ Điểm danh thành công!";
       }
@@ -99,5 +104,73 @@ class AttendanceService {
     } catch (e) {
       return "❌ Lỗi khi điểm danh: $e";
     }
+  }
+
+
+  // ===================== GET HISTORY (TEACHER) =====================
+  /// Lấy lịch sử các phiên điểm danh của giảng viên (cho Frame 19)
+  Future<List<AttendanceHistory>> getAttendanceHistory({
+    String? courseName, // Tên môn
+    String? className,  // Tên lớp
+    String? room,   // Phòng
+    String? time,       // Giờ
+  }) async {
+
+    // === THÊM LOGIC TẠO THAM SỐ ===
+    // Tạo một Map để chứa các tham số truy vấn
+    final Map<String, dynamic> queryParameters = {};
+
+    if (courseName != null && courseName.isNotEmpty) {
+      queryParameters['course_name'] = courseName;
+    }
+    if (className != null && className.isNotEmpty) {
+      queryParameters['class_name'] = className;
+    }
+    if (room != null && room.isNotEmpty) {
+      queryParameters['room'] = room;
+    }
+    if (time != null && time.isNotEmpty) {
+      queryParameters['time'] = time;
+    }
+
+    final res = await _dio.get(
+      AppConfig.attendanceHistory,
+      queryParameters: queryParameters, // Gửi các tham số tìm kiếm
+      options: Options(headers: {'Accept': 'application/json'}),
+    );
+    log('--- API RESPONSE ---: ${res.data.toString()}');
+    // (Phần còn lại của hàm giữ nguyên)
+    if (res.data is Map<String, dynamic>) {
+      final Map<String, dynamic> responseData = res.data;
+
+      // 4. Lấy giá trị của key 'results' (dựa trên log của bạn)
+      final dynamic data = responseData['results'];
+
+      // 5. Kiểm tra xem 'results' có phải là List không
+      if (data is List) {
+        // Thành công!
+        return data.map((item) => AttendanceHistory.fromJson(item as Map<String, dynamic>)).toList();
+      } else {
+        // 'results' là null hoặc không phải List (ví dụ: tìm không thấy)
+        return []; // Trả về danh sách rỗng
+      }
+    }
+    if (res.data is List) {
+      List<dynamic> listData = res.data;
+      return listData.map((item) => AttendanceHistory.fromJson(item as Map<String, dynamic>)).toList();
+    }
+    throw Exception('API response is not in expected format');
+  }
+
+  // ===================== GET SESSION DETAIL (TEACHER) =====================
+  /// Lấy chi tiết một phiên điểm danh (cho Frame 20)
+  Future<SessionDetail> getSessionDetail(String classSectionId) async {
+    final res = await _dio.get(
+      "${AppConfig.attendanceHistoryDetail}/$classSectionId/detail",
+      options: Options(headers: {'Accept': 'application/json'}),
+    );
+
+    // Dio tự động parse JSON, res.data ở đây là một Map<String, dynamic>
+    return SessionDetail.fromJson(res.data);
   }
 }

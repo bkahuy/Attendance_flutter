@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../services/attendance_service.dart';
-import 'package:qr_flutter/qr_flutter.dart';
-import 'qr_screen.dart';
+// import 'package:qr_flutter/qr_flutter.dart'; // Không dùng ở trang này
+import 'qr_screen.dart'; // Đảm bảo import đúng ShowQrPage
 
 class CreateSessionPage extends StatefulWidget {
   final Map<String, dynamic> schedule;
@@ -17,7 +17,8 @@ class _CreateSessionPageState extends State<CreateSessionPage> {
   TimeOfDay? _endTime;
   bool _loading = false;
 
-  final _attendanceService = AttendanceService();
+  // Xóa dòng này nếu bạn gọi service trực tiếp, vì bạn đã gọi AttendanceService()
+  // final _attendanceService = AttendanceService();
 
   Future<void> _pickStartTime() async {
     final picked = await showTimePicker(
@@ -58,21 +59,53 @@ class _CreateSessionPageState extends State<CreateSessionPage> {
     setState(() => _loading = true);
     try {
       final now = DateTime.now();
-      final startAt = DateTime(now.year, now.month, now.day, _startTime!.hour, _startTime!.minute);
-      final endAt = DateTime(now.year, now.month, now.day, _endTime!.hour, _endTime!.minute);
 
-      final session = await AttendanceService().createSession(
+      // Sửa: Dùng 'var' thay vì 'final' để có thể cập nhật
+      var startAt = DateTime(now.year, now.month, now.day, _startTime!.hour, _startTime!.minute);
+      var endAt = DateTime(now.year, now.month, now.day, _endTime!.hour, _endTime!.minute);
+
+      // ===== SỬA LỖI 1: XỬ LÝ TRƯỜNG HỢP QUA ĐÊM =====
+      // Nếu giờ kết thúc sớm hơn giờ bắt đầu (ví dụ: 23:00 - 01:00)
+      // thì cộng thêm 1 ngày cho giờ kết thúc.
+      if (endAt.isBefore(startAt)) {
+        endAt = endAt.add(const Duration(days: 1));
+      }
+      // ============================================
+
+      final response = await AttendanceService().createSession(
         classSectionId: widget.schedule['class_section_id'],
-        startAt: startAt,
-        endAt: endAt,
+        startAt: startAt, // Gửi DateTime object đã được sửa
+        endAt: endAt,     // Gửi DateTime object đã được sửa
         camera: true,
         gps: false,
+        qr: true, // Yêu cầu server tạo mã QR cho phiên này
         password: _passController.text.isEmpty ? null : _passController.text,
       );
 
+      // Response từ server có structure: { message, session, qr }
+      // Trích phần session thực tế và token (nếu có) để truyền cho ShowQrPage
+      final Map<String, dynamic> session = Map<String, dynamic>.from(response['session'] ?? {});
+      final Map<String, dynamic>? qr = response['qr'] != null ? Map<String, dynamic>.from(response['qr']) : null;
+
+      // Đưa token và deep_link lên cùng object session để ShowQrPage dễ sử dụng
+      if (qr != null) {
+        session['token'] = qr['token'];
+        session['deep_link'] = qr['deep_link'];
+      }
+
       if (!mounted) return;
+
+  session['start_at'] ??= startAt.toIso8601String();
+  session['end_at'] ??= endAt.toIso8601String();
+
+  session['course_name'] ??= widget.schedule['course_name'];
+  session['room'] ??= widget.schedule['room'];
+  session['class_name'] ??= widget.schedule['class_names'];
+      // =================================================================
+
       Navigator.push(
         context,
+        // Truyền object session (đã chứa token nếu server trả về)
         MaterialPageRoute(builder: (_) => ShowQrPage(session: session)),
       );
 
