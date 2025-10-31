@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import '../../api/face_api.dart';
+import '../../api/face_api_service.dart';
 
 class FaceEnrollPage extends StatefulWidget {
   const FaceEnrollPage({super.key});
@@ -21,7 +21,7 @@ class _FaceEnrollPageState extends State<FaceEnrollPage> {
     final template = Uint8List.fromList(List.generate(64, (i) => i));
 
     try {
-      final id = await FaceApi().enroll(
+      final id = await FaceApiService().enroll(
         templateBytes: template,
         version: 'regula-2025.10',
         quality: 0.92,
