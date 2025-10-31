@@ -7,10 +7,13 @@ import 'qr_scan_page.dart';
 import 'package:intl/intl.dart';
 import 'course_detail_page.dart';
 import '../setting_page.dart';
-import 'face_scan_page.dart'; // 2. Thêm file quét mặt
-import 'student_checkin_loading_page.dart'; // 3. Thêm file tải trung gian
+import 'face_scan_page.dart';
+import 'student_checkin_loading_page.dart';
 import 'dart:io';
 
+// =========================================================================
+// 1. WIDGET CHÍNH (CHỨA KHUNG VÀ TRẠNG THÁI)
+// =========================================================================
 class StudentHome extends StatefulWidget {
   final AppUser user;
   const StudentHome({super.key, required this.user});
@@ -20,23 +23,24 @@ class StudentHome extends StatefulWidget {
 }
 
 class _StudentHomeState extends State<StudentHome> {
-  DateTime selectedDate = DateTime.now();
-  // Biến này giờ chỉ dùng để xác định icon nào đang được chọn (luôn là Home)
-  final int currentIndex = 0;
+  // _visualTabIndex: Nút nào đang sáng (0=Home, 1=QR, 2=Settings)
+  // _pageIndex: Trang nội dung nào đang hiển thị (0=Home, 1=Settings)
+  int _visualTabIndex = 0;
+  int _pageIndex = 0;
 
-  // 🔹 Lấy danh sách thứ trong tuần
+  // --- Các state và hàm logic cho trang Home (tab 0) ---
+  DateTime selectedDate = DateTime.now();
+
   List<DateTime> getWeekDays(DateTime base) {
     final monday = base.subtract(Duration(days: base.weekday - 1));
     return List.generate(7, (i) => monday.add(Duration(days: i)));
   }
 
-  // 🔹 Chỉ thay đổi ngày (không load lại toàn bộ widget)
   void _changeDay(DateTime date) => setState(() => selectedDate = date);
 
   void _changeBy(int days) =>
       setState(() => selectedDate = selectedDate.add(Duration(days: days)));
 
-  // 🔹 Hàm đổi màu theo trạng thái buổi học
   Color _statusColor(DateTime start) {
     final now = DateTime.now();
     if (start.isBefore(now.subtract(const Duration(minutes: 15)))) {
@@ -48,7 +52,21 @@ class _StudentHomeState extends State<StudentHome> {
     }
   }
 
-  // 🔹 Hàm fetch dữ liệu (chỉ dùng riêng cho FutureBuilder)
+  Future<void> _onRefresh() async {
+    setState(() {}); // Chỉ cần build lại để FutureBuilder chạy lại
+  }
+
+  Future<void> _onShowDatePicker() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: selectedDate,
+      firstDate: DateTime(2024),
+      lastDate: DateTime(2026),
+      // 🎨 Đã xóa locale để tránh lỗi
+    );
+    if (picked != null) _changeDay(picked);
+  }
+
   Future<List<Map<String, dynamic>>> _fetchSchedule() async {
     try {
       final res = await ApiClient().dio.get(
@@ -58,7 +76,6 @@ class _StudentHomeState extends State<StudentHome> {
         },
       );
       print(res.data);
-
       if (res.statusCode == 200) {
         if (res.data is Map && res.data['data'] != null) {
           return (res.data['data'] as List)
@@ -77,77 +94,184 @@ class _StudentHomeState extends State<StudentHome> {
       throw Exception(e.toString());
     }
   }
+  // --- Kết thúc logic trang Home ---
 
-  @override
-  Widget build(BuildContext context) {
+  // 🎨 KẾ THỪA (Giống TeacherHome): Getter cho danh sách các trang
+  List<Widget> get _pages {
+    // Tính toán dữ liệu cho trang Home
     final weekDays = getWeekDays(selectedDate);
     final daysLabel = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
 
+    // 🎨 CẬP NHẬT: _pages chỉ chứa 2 trang nội dung
+    return [
+      // --- Trang 0: Trang chủ (Lịch học) ---
+      _StudentHomeContent(
+        selectedDate: selectedDate,
+        weekDays: weekDays,
+        daysLabel: daysLabel,
+        fetchSchedule: _fetchSchedule,
+        statusColor: _statusColor,
+        onChangeDay: _changeDay,
+        onChangeBy: _changeBy,
+        onRefresh: _onRefresh,
+        onShowDatePicker: _onShowDatePicker,
+      ),
+      // --- Trang 1: Cài đặt ---
+      const SettingsPage(),
+    ];
+  }
+
+  // 🎨 KẾ THỪA (Giống TeacherHome): Getter cho tiêu đề trang
+  List<String> get _pageTitles => const ['Trang chủ', 'Cài đặt'];
+
+  // 🎨 KẾ THỪA (Giống TeacherHome): Hàm build AppBar động
+  AppBar _buildAppBar() {
+    if (_pageIndex == 0) {
+      // Trang chủ: hiển thị thông tin user
+      return AppBar(
+        automaticallyImplyLeading: false,
+        backgroundColor: Colors.deepPurpleAccent,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        title: Row(
+          children: [
+            const CircleAvatar(
+              radius: 20,
+              backgroundColor: Colors.white,
+              child: Icon(Icons.person, color: Colors.grey, size: 28),
+            ),
+            const SizedBox(width: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.user.name ?? "Sinh viên",
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16),
+                ),
+                const Text('Sinh viên',
+                    style: TextStyle(color: Colors.white70, fontSize: 13)),
+              ],
+            )
+          ],
+        ),
+      );
+    } else {
+      // Các trang khác (Cài đặt): hiển thị tiêu đề
+      return AppBar(
+        automaticallyImplyLeading: false,
+        title: Text(_pageTitles[_pageIndex]), // 🎨 Dùng _pageIndex
+        centerTitle: true,
+        backgroundColor: Colors.deepPurpleAccent,
+        foregroundColor: Colors.white,
+        elevation: 1,
+      );
+    }
+  }
+
+  // 🎨 HÀM HÀNH ĐỘNG: Xử lý quy trình quét QR
+  Future<void> _startQRScanFlow() async {
+    // 1. Mở trang Quét QR
+    final String? qrToken = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(
+        // 🎨 SỬA LỖI: Bỏ Scaffold wrapper
+        // Trang QrScanPage giờ đã tự có AppBar màu tím
+        builder: (_) => const QrScanPage(returnData: true),
+      ),
+    );
+    if (qrToken == null || !context.mounted) return;
+
+    // 2. Mở trang Quét Mặt
+    final File? facePhoto = await Navigator.push<File>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const FaceScanPage(),
+      ),
+    );
+    if (facePhoto == null || !context.mounted) return;
+
+    // 3. Mở trang Tải dữ liệu
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => StudentCheckinLoadingPage(
+          qrToken: qrToken,
+          facePhoto: facePhoto,
+        ),
+      ),
+    );
+  }
+
+  // 🔹 Hàm build() chính
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.deepPurpleAccent,
+
+      // --- TOP BAR (Kế thừa) ---
+      appBar: _buildAppBar(),
+
+      // --- NỘI DUNG (Kế thừa - Dùng IndexedStack) ---
       body: SafeArea(
-        // 👇 2. BỎ INDEXEDSTACK, chỉ hiển thị trang home
-        child: _buildHomePage(weekDays, daysLabel),
+        child: IndexedStack(
+          index: _pageIndex, // 👈 Dùng _pageIndex (0 hoặc 1)
+          children: _pages,  // 👈 Danh sách 2 trang
+        ),
       ),
 
-      // 🔹 Thanh điều hướng dưới cùng
+      // 🎨 CẬP NHẬT: BottomNavigationBar
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
-          color: Color(0xFF9C8CFC),
+          color: Colors.deepPurpleAccent,
         ),
         child: BottomNavigationBar(
-          currentIndex: currentIndex,
+          // 🎨 Dùng _visualTabIndex để tô sáng nút
+          currentIndex: _visualTabIndex,
           backgroundColor: Colors.transparent,
           elevation: 0,
           selectedItemColor: Colors.black,
           unselectedItemColor: Colors.black54,
           type: BottomNavigationBarType.fixed,
-          onTap: (index) async {
-            // --- XỬ LÝ NHẤN VÀO ICON QR (index 1) ---
-            if (index == 1) {
 
-              // 1. Mở trang Quét QR (dùng file của bạn) và đợi kết quả (token)
-              // ‼️ Chú ý: Chúng ta gọi với returnData: true
-              final String? qrToken = await Navigator.push<String>(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const QrScanPage(returnData: true),
-                ),
-              );
-
-              // 2. Nếu người dùng bấm Back, dừng lại
-              if (qrToken == null || !context.mounted) return;
-
-              // 3. Mở trang Quét Mặt (file mới) và đợi kết quả (ảnh)
-              final File? facePhoto = await Navigator.push<File>(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const FaceScanPage(),
-                ),
-              );
-
-              // 4. Nếu người dùng bấm Back, dừng lại
-              if (facePhoto == null || !context.mounted) return;
-
-              // 5. Mở trang TẢI DỮ LIỆU TRUNG GIAN (file mới)
-              // Trang này sẽ giải mã QR, lấy session, rồi chuyển tiếp
-              // sang StudentCheckinPage (file của bạn)
-              await Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => StudentCheckinLoadingPage(
-                    qrToken: qrToken,
-                    facePhoto: facePhoto,
-                  ),
-                ),
-              );
+          // 🎨 CẬP NHẬT: Logic onTap (Đã hoàn thiện)
+          onTap: (tapIndex) async {
+            // ---------------------------------
+            // --- XỬ LÝ NHẤN VÀO ICON HOME (index 0) ---
+            if (tapIndex == 0) {
+              setState(() {
+                _visualTabIndex = 0; // Sáng nút Home
+                _pageIndex = 0;      // Hiển thị trang Home
+              });
             }
+            // ---------------------------------
+            // --- XỬ LÝ NHẤN VÀO ICON QR (index 1) ---
+            else if (tapIndex == 1) {
+              // 1. Sáng nút QR
+              setState(() {
+                _visualTabIndex = 1;
+              });
+
+              // 2. Chạy hàm quét
+              await _startQRScanFlow();
+
+              // 3. Sau khi quét xong, trả lại sáng nút Home
+              if (mounted) {
+                setState(() {
+                  // Đặt lại visualTabIndex về trang đang hiển thị
+                  _visualTabIndex = (_pageIndex == 0) ? 0 : 2;
+                });
+              }
+            }
+            // ---------------------------------
             // --- XỬ LÝ NHẤN VÀO ICON CÀI ĐẶT (index 2) ---
-            else if (index == 2) {
-              await Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const SettingsPage()),
-              );
+            else if (tapIndex == 2) {
+              setState(() {
+                _visualTabIndex = 2; // Sáng nút Settings
+                _pageIndex = 1;      // Hiển thị trang Settings (trang thứ 2)
+              });
             }
           },
           items: const [
@@ -156,7 +280,7 @@ class _StudentHomeState extends State<StudentHome> {
               label: '',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.qr_code_2_outlined),
+              icon: Icon(Icons.qr_code_2_outlined), // 👈 Nút QR
               label: '',
             ),
             BottomNavigationBarItem(
@@ -168,34 +292,39 @@ class _StudentHomeState extends State<StudentHome> {
       ),
     );
   }
+}
 
-  // Hàm _buildHomePage không có gì thay đổi
-  Widget _buildHomePage(List<DateTime> weekDays, List<String> daysLabel) {
+// =========================================================================
+// 2. WIDGET NỘI DUNG (Widget con)
+// =========================================================================
+class _StudentHomeContent extends StatelessWidget {
+  final DateTime selectedDate;
+  final List<DateTime> weekDays;
+  final List<String> daysLabel;
+  final Future<List<Map<String, dynamic>>> Function() fetchSchedule;
+  final Color Function(DateTime) statusColor;
+  final void Function(DateTime) onChangeDay;
+  final void Function(int) onChangeBy;
+  final VoidCallback onRefresh;
+  final VoidCallback onShowDatePicker;
+
+  const _StudentHomeContent({
+    required this.selectedDate,
+    required this.weekDays,
+    required this.daysLabel,
+    required this.fetchSchedule,
+    required this.statusColor,
+    required this.onChangeDay,
+    required this.onChangeBy,
+    required this.onRefresh,
+    required this.onShowDatePicker,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 🔹 Thông tin sinh viên
-        Container(
-          color: Colors.deepPurple.shade200,
-          padding: const EdgeInsets.all(16),
-          width: double.infinity,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                widget.user.name ?? "Sinh viên",
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-              const Text("Sinh viên", style: TextStyle(color: Colors.white70)),
-            ],
-          ),
-        ),
-
-        // 🔹 Dãy chọn thứ
         Container(
           color: Colors.purple.shade50,
           padding: const EdgeInsets.symmetric(vertical: 10),
@@ -209,7 +338,7 @@ class _StudentHomeState extends State<StudentHome> {
                 return Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 4),
                   child: GestureDetector(
-                    onTap: () => _changeDay(date),
+                    onTap: () => onChangeDay(date),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 12, vertical: 8),
@@ -236,8 +365,6 @@ class _StudentHomeState extends State<StudentHome> {
             ),
           ),
         ),
-
-        // 🔹 Thanh tiêu đề ngày hiện tại
         Container(
           color: Colors.purple.shade50,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -247,7 +374,7 @@ class _StudentHomeState extends State<StudentHome> {
               Row(children: [
                 IconButton(
                   icon: const Icon(Icons.chevron_left),
-                  onPressed: () => _changeBy(-1),
+                  onPressed: () => onChangeBy(-1),
                 ),
                 Text(
                   "Lịch ngày ${DateFormat('dd/MM/yyyy').format(selectedDate)}",
@@ -256,106 +383,93 @@ class _StudentHomeState extends State<StudentHome> {
                 ),
                 IconButton(
                   icon: const Icon(Icons.chevron_right),
-                  onPressed: () => _changeBy(1),
+                  onPressed: () => onChangeBy(1),
                 ),
               ]),
               Row(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.refresh),
-                    tooltip: 'Tải lại lịch học',
-                    onPressed: () {
-                      setState(() {}); // chỉ reload phần FutureBuilder
-                    },
-                  ),
-                  IconButton(
                     icon: const Icon(Icons.calendar_today),
                     tooltip: 'Chọn ngày khác',
-                    onPressed: () async {
-                      final picked = await showDatePicker(
-                        context: context,
-                        initialDate: selectedDate,
-                        firstDate: DateTime(2024),
-                        lastDate: DateTime(2026),
-                        locale: const Locale('vi', 'VN'),
-                      );
-                      if (picked != null) _changeDay(picked);
-                    },
+                    onPressed: onShowDatePicker,
                   ),
-
+                  IconButton(
+                    icon: const Icon(Icons.refresh),
+                    tooltip: 'Tải lại lịch học',
+                    onPressed: onRefresh,
+                  ),
                 ],
               )
             ],
           ),
         ),
-
-
-        // 🔹 Danh sách lịch học (chỉ phần này load lại khi đổi ngày)
         Expanded(
-          child: FutureBuilder<List<Map<String, dynamic>>>(
-            future: _fetchSchedule(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              if (snapshot.hasError) {
-                return Center(
-                    child: Text("Lỗi tải lịch: ${snapshot.error}",
-                        textAlign: TextAlign.center));
-              }
-
-              final schedule = snapshot.data ?? [];
-              if (schedule.isEmpty) {
-                return const Center(
-                    child: Text("Không có lịch học cho ngày này."));
-              }
-
-              return ListView.builder(
-                padding: const EdgeInsets.all(12),
-                itemCount: schedule.length,
-                itemBuilder: (ctx, i) {
-                  final s = schedule[i];
-                  final startTime = DateTime.tryParse(s['start_time'] ?? '');
-                  final color = startTime != null
-                      ? _statusColor(startTime)
-                      : Colors.grey;
-                  final formattedTime = startTime != null
-                      ? DateFormat.Hm().format(startTime)
-                      : '--:--';
-
-                  return Card(
-                    elevation: 3,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    child: ListTile(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => CourseDetailPage(course: s),
-                          ),
-                        );
-                      },
-                      title: Text(
-                        s['course_name'] ?? 'Không rõ môn học',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
+          child: Container(
+            color: Colors.white,
+            child: FutureBuilder<List<Map<String, dynamic>>>(
+              future: fetchSchedule(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (snapshot.hasError) {
+                  return Center(
+                      child: Text("Lỗi tải lịch: ${snapshot.error}",
+                          textAlign: TextAlign.center));
+                }
+                final schedule = snapshot.data ?? [];
+                if (schedule.isEmpty) {
+                  return const Center(
+                      child: Text("Không có lịch học cho ngày này."));
+                }
+                return ListView.builder(
+                  padding: const EdgeInsets.all(12),
+                  itemCount: schedule.length,
+                  itemBuilder: (ctx, i) {
+                    final s = schedule[i];
+                    final startTime = DateTime.tryParse(s['start_time'] ?? '');
+                    final color = startTime != null
+                        ? statusColor(startTime)
+                        : Colors.grey;
+                    final formattedTime = startTime != null
+                        ? DateFormat.Hm().format(startTime)
+                        : '--:--';
+                    return Card(
+                      elevation: 3,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                      child: ListTile(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => CourseDetailPage(course: s),
+                            ),
+                          );
+                        },
+                        title: Text(
+                          s['course_name'] ?? 'Không rõ môn học',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: Text(
+                          'Phòng: ${s['room'] ?? '--'}',
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(formattedTime,
+                                style: const TextStyle(fontSize: 14)),
+                            const SizedBox(width: 8),
+                            Icon(Icons.circle, color: color, size: 16),
+                          ],
+                        ),
                       ),
-                      subtitle: Text(
-                        'Phòng: ${s['room'] ?? '--'}',
-                        style: const TextStyle(fontSize: 14),
-                      ),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(formattedTime, style: const TextStyle(fontSize: 14)),
-                          const SizedBox(width: 8),
-                          Icon(Icons.circle, color: color, size: 16),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              );
-            },
+                    );
+                  },
+                );
+              },
+            ),
           ),
         ),
       ],
