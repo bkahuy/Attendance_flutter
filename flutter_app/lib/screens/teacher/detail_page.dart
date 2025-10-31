@@ -12,7 +12,7 @@ class Student {
 class DetailPage extends StatefulWidget {
   final String courseTitle;
 
-  const DetailPage({Key? key, required this.courseTitle}) : super(key: key);
+  const DetailPage({super.key, required this.courseTitle, required String sessionId});
 
   @override
   State<DetailPage> createState() => _DetailPageState();
@@ -112,7 +112,7 @@ class _DetailPageState extends State<DetailPage> {
                         icon: const Icon(Icons.qr_code_scanner),
                         label: const Text('QR CODE'),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF673AB7), // Tím đậm hơn
+                          backgroundColor: const Color(0xFFFFFFFF),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),

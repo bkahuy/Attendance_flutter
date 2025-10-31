@@ -24,11 +24,13 @@ class TeacherRepository {
     required DateTime endAt,
     bool camera = true,
     bool gps = false,
+    bool qr = false,
     String? password,
   }) async {
     final mode = <String, dynamic>{};
     if (camera) mode['camera'] = true;
     if (gps) mode['gps'] = true;
+    if (qr) mode['qr'] = true;
     if (password != null && password.isNotEmpty) mode['password'] = password;
 
     final res = await _dio.post(

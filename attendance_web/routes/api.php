@@ -18,7 +18,8 @@ Route::prefix('auth')->group(function(){
 Route::middleware(['auth:api','role:teacher'])->group(function(){
     Route::get('teacher/schedule',[TeacherController::class,'schedule']);
     Route::post('attendance/session',[TeacherController::class,'createSession']);
-    Route::get('attendance/session/{id}',[TeacherController::class,'sessionDetail']);
+    Route::get('attendance/session/search',[TeacherController::class,'searchAttendanceHistory']);
+    Route::get('attendance/session/{id}/detail',[TeacherController::class,'getAttendanceRecords']);
     Route::get('stats/class/{id}',[StatsController::class,'classStats']);
     Route::get('stats/session/{id}',[StatsController::class,'sessionStats']);
 });
