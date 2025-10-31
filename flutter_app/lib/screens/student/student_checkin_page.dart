@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:intl/intl.dart'; // Import thư viện intl
+import 'package:intl/intl.dart';
 import '../../services/attendance_service.dart';
 
 class StudentCheckinPage extends StatefulWidget {
@@ -15,8 +15,6 @@ class StudentCheckinPage extends StatefulWidget {
 }
 
 class _StudentCheckinPageState extends State<StudentCheckinPage> {
-  // Đổi status từ Dropdown thành Radio button
-  // Giá trị có thể là 'Có mặt', 'Muộn', 'Vắng'
   String? status;
   String password = '';
   File? photo;
@@ -24,7 +22,6 @@ class _StudentCheckinPageState extends State<StudentCheckinPage> {
   bool sending = false;
 
   Future<void> _pickPhoto() async {
-    // Chức năng chụp ảnh vẫn được giữ lại để sử dụng ở logic nền
     final picker = ImagePicker();
     final img = await picker.pickImage(source: ImageSource.camera, maxWidth: 1280, imageQuality: 85,preferredCameraDevice: CameraDevice.front,);
     if (img != null) {
@@ -33,15 +30,16 @@ class _StudentCheckinPageState extends State<StudentCheckinPage> {
       });
     }
   }
+
   @override
   void initState() {
     super.initState();
-    // Nếu đã có ảnh truyền sẵn từ CourseDetailPage, gán luôn
+    // Gán ảnh đã chụp
     photo = widget.photo;
-    // if (widget.session['photo_path'] != null) {
-    //   photo = File(widget.session['photo_path']);
-    // }
+    // Đặt locale để format ngày (ví dụ: "Th 6")
+    Intl.defaultLocale = 'vi_VN';
   }
+
   Future<void> _getLocation() async {
     final enabled = await Geolocator.isLocationServiceEnabled();
     if (!enabled) { await Geolocator.openLocationSettings(); return; }
@@ -63,7 +61,6 @@ class _StudentCheckinPageState extends State<StudentCheckinPage> {
       return;
     }
 
-    // Ánh xạ lại giá trị để gửi đi
     String statusValue;
     switch (status) {
       case 'Có mặt':
@@ -79,23 +76,31 @@ class _StudentCheckinPageState extends State<StudentCheckinPage> {
         statusValue = 'present';
     }
 
-    // 👉 Chỉ chụp ảnh nếu chưa có
-    // if (photo == null) {
-    //   await _pickPhoto();
-    //   if (photo == null) {
-    //     ScaffoldMessenger.of(context).showSnackBar(
-    //       const SnackBar(content: Text('Bạn chưa chụp ảnh xác nhận')),
-    //     );
-    //     return;
-    //   }
-    // }
-
     await _getLocation();
 
     setState(() => sending = true);
     try {
+      // 🎨 SỬA LỖI (từ lần trước):
+      // Đảm bảo 'session_id' được kiểm tra null và parse an toàn
+      final dynamic sessionId = widget.session['session_id'];
+      if (sessionId == null) {
+        throw Exception("Không tìm thấy ID buổi học (session_id is null).");
+      }
+      final int sessionIdAsInt = int.parse(sessionId.toString());
+
+      // 🎨 GHI CHÚ DEBUG (từ lần trước):
+      // Thêm print để kiểm tra lỗi 422
+      print("===== DỮ LIỆU GỬI ĐI (checkIn): =====");
+      print("sessionId: $sessionIdAsInt");
+      print("status: $statusValue");
+      print("password: $password");
+      print("lat: ${pos?.latitude}");
+      print("lng: ${pos?.longitude}");
+      print("photoFile exists: ${photo != null}");
+      print("====================================");
+
       await AttendanceService().checkIn(
-        sessionId: widget.session['session_id'] as int,
+        sessionId: sessionIdAsInt,
         status: statusValue,
         password: password.isEmpty ? null : password,
         lat: pos?.latitude,
@@ -108,11 +113,8 @@ class _StudentCheckinPageState extends State<StudentCheckinPage> {
         const SnackBar(content: Text('Điểm danh thành công!')),
       );
 
-      // ✅ Trở về trang chi tiết môn học và cập nhật trạng thái
-      Navigator.of(context).pop({
-        'checkedIn': true,
-        'status': statusValue,
-      });
+      // Quay về trang trước đó
+      Navigator.of(context).pop();
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -124,26 +126,33 @@ class _StudentCheckinPageState extends State<StudentCheckinPage> {
   }
 
 
-
-  // Widget riêng cho các lựa chọn Radio
+  // 🎨 CẬP NHẬT: Dùng Row thay vì ListTile để có giao diện gọn (giống ảnh)
   Widget _buildRadioOption(String title) {
-    return ListTile(
-      title: Text(title),
-      leading: Radio<String>(
-        value: title,
-        groupValue: status,
-        onChanged: (String? value) {
-          setState(() {
-            status = value;
-          });
-        },
-      ),
-      contentPadding: EdgeInsets.zero,
+    return GestureDetector(
       onTap: () {
         setState(() {
           status = title;
         });
       },
+      // Bọc trong Row để radio và text sát nhau
+      child: Row(
+        mainAxisSize: MainAxisSize.min, // Giữ cho Row co lại
+        children: [
+          Radio<String>(
+            value: title,
+            groupValue: status,
+            onChanged: (String? value) {
+              setState(() {
+                status = value;
+              });
+            },
+            // Giảm padding mặc định của Radio
+            visualDensity: VisualDensity.compact,
+            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+          Text(title),
+        ],
+      ),
     );
   }
 
@@ -152,89 +161,91 @@ class _StudentCheckinPageState extends State<StudentCheckinPage> {
     final s = widget.session;
     final className = s['class_name'] ?? 'Lớp';
     final courseName = s['course_name'] ?? 'Tên môn học';
-    final courseCode = s['course_code'] ?? 'Mã môn';
-    final sessionDate = DateTime.parse(s['date']);
+    // final courseCode = s['course_code'] ?? 'Mã môn'; // 🎨 BỎ (không có trong ảnh)
+
+    // 🎨 CẬP NHẬT: Dùng tryParse để an toàn hơn
+    final sessionDate = DateTime.tryParse(s['date'] ?? '') ?? DateTime.now();
+
+    // 🎨 CẬP NHẬT: Format "Thứ... dd/MM/yyyy"
+    // (Ảnh dùng "Fri" là tiếng Anh, ta dùng "vi_VN" sẽ ra "T6" hoặc "Thứ 6")
     final formattedDate = DateFormat("E dd/MM/yyyy", "vi_VN").format(sessionDate);
     final photoName = photo == null ? '' : photo!.path.split('/').last;
 
     return Scaffold(
+      // 🎨 CẬP NHẬT: AppBar
       appBar: AppBar(
-        // Thêm nút Back (quay lại trang CourseDetail)
-        leading: const BackButton(color: Colors.black),
-        // Đổi tiêu đề cho rõ ràng hơn
+        leading: const BackButton(color: Colors.white), // Icon back màu trắng
         title: const Text(
-          'Xác nhận điểm danh',
-          style: TextStyle(color: Colors.black),
+          'Máy ảnh', // Đổi tiêu đề
+          style: TextStyle(color: Colors.white), // Chữ màu trắng
         ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
+        backgroundColor: Colors.indigo.shade400, // Nền màu tím
+        elevation: 1, // Thêm bóng mờ
       ),
+
+      // 🎨 CẬP NHẬT: Nền
+      backgroundColor: Colors.white,
 
       // 🔹 Nội dung chính
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
-        child: Card(
-          color: const Color(0xFFE0E0E0),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-          elevation: 0,
+
+        // 🎨 CẬP NHẬT: Card
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.grey[100], // Màu xám rất nhạt
+            borderRadius: BorderRadius.circular(15),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 5,
+                offset: const Offset(0, 2),
+              )
+            ],
+          ),
           child: Padding(
             padding: const EdgeInsets.all(24.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // 🎨 CẬP NHẬT: Thứ tự (Lớp -> Tên môn)
                 Text(
                   'Lớp $className',
                   style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  '$courseCode $courseName',
+                  courseName, // 🎨 Bỏ courseCode
                   style: TextStyle(fontSize: 16, color: Colors.grey[800]),
                 ),
                 const SizedBox(height: 16),
+
+                // 🎨 CẬP NHẬT: Hàng ngày tháng và tên ảnh
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     // Ngày tháng
-                    Flexible(
-                      flex: 3,
-                      child: Text(
-                        formattedDate,
-                        style: TextStyle(fontSize: 16, color: Colors.grey[800]),
-                      ),
+                    Text(
+                      formattedDate,
+                      style: TextStyle(fontSize: 16, color: Colors.grey[800]),
                     ),
                     const SizedBox(width: 16),
-                    // Tên ảnh và Nút chụp lại
+                    // Tên ảnh (Bỏ IconButton)
                     Flexible(
-                      flex: 4, // Cho nhiều không gian hơn
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.end, // Đẩy sang phải
-                        children: [
-                          // Tên file (linh hoạt)
-                          Flexible(
-                            child: Text(
-                              photoName,
-                              style: TextStyle(
-                                  fontSize: 14, color: Colors.grey[800]),
-                              overflow: TextOverflow.ellipsis, // Chống tràn text
-                              textAlign: TextAlign.right,
-                            ),
-                          ),
-                          // Nút "Quay lại Camera" (Chụp lại)
-                          IconButton(
-                            icon: const Icon(Icons.camera_alt_outlined),
-                            color: Colors.grey[900],
-                            tooltip: 'Chụp lại',
-                            onPressed: _pickPhoto, // Gọi lại hàm chụp ảnh
-                          ),
-                        ],
+                      child: Text(
+                        photoName,
+                        style:
+                        TextStyle(fontSize: 14, color: Colors.grey[800]),
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.right,
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 8),
 
+                // 🎨 CẬP NHẬT: Dùng widget _buildRadioOption đã sửa
                 _buildRadioOption('Có mặt'),
                 _buildRadioOption('Muộn'),
                 _buildRadioOption('Vắng'),
@@ -259,7 +270,10 @@ class _StudentCheckinPageState extends State<StudentCheckinPage> {
                   ),
                 ),
                 const SizedBox(height: 24),
-                Center(
+
+                // 🎨 CẬP NHẬT: Căn lề nút "XÁC NHẬN" sang phải
+                Align(
+                  alignment: Alignment.centerRight,
                   child: ElevatedButton(
                     onPressed: sending ? null : _submit,
                     style: ElevatedButton.styleFrom(
@@ -289,5 +303,4 @@ class _StudentCheckinPageState extends State<StudentCheckinPage> {
       ),
     );
   }
-
 }

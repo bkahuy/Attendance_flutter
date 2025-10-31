@@ -29,6 +29,7 @@ class _StudentCheckinLoadingPageState extends State<StudentCheckinLoadingPage> {
 
   Future<void> _resolveAndNavigate() async {
     try {
+      print("[DEBUG] Đang gửi token này lên server: ${widget.qrToken}");
       // 1. Gọi API resolveQr (giống trong QrScanPage của bạn)
       final sessionData =
       await AttendanceService().resolveQr(widget.qrToken);

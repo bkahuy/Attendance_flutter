@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
-import '../../services/attendance_service.dart';
 
 class QrScanPage extends StatefulWidget {
-  final bool returnData; // cho phép dùng trong nhiều ngữ cảnh
+  final bool returnData;
 
   const QrScanPage({super.key, this.returnData = false});
 
@@ -14,7 +13,6 @@ class QrScanPage extends StatefulWidget {
 class _QrScanPageState extends State<QrScanPage> {
   bool _handled = false;
   final _controller = MobileScannerController();
-  final _attendanceService = AttendanceService();
 
   @override
   void dispose() {
@@ -24,61 +22,43 @@ class _QrScanPageState extends State<QrScanPage> {
 
   Future<void> _onDetect(BarcodeCapture capture) async {
     if (_handled) return; // tránh đọc nhiều lần
+
     final barcode = capture.barcodes.first.rawValue;
-    if (barcode == null) return;
+    if (barcode == null) return; // Không có dữ liệu
 
     _handled = true;
 
     try {
-      final uri = Uri.tryParse(barcode);
-      final token = uri?.queryParameters['token'] ?? barcode;
+      final String token = barcode;
 
       if (widget.returnData) {
-        // Dành cho trường hợp dùng trong trang khác (trả token)
+        // Chỉ trả về token cho trang Loading xử lý
         Navigator.pop(context, token);
-        return;
+      } else {
+        Navigator.pop(context, null);
       }
-
-      // 1️⃣ Gọi API resolveQr
-      final resolved = await _attendanceService.resolveQr(token);
-      final sessionId = resolved['session_id'];
-      if (sessionId == null) {
-        throw Exception('Không tìm thấy mã phiên điểm danh');
-      }
-
-      // 2️⃣ Gọi API checkIn
-      await _attendanceService.checkIn(
-        sessionId: sessionId,
-        status: 'present',
-      );
-
-      if (!mounted) return;
-
-      // 3️⃣ Thông báo thành công
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Điểm danh thành công!'),
-          backgroundColor: Colors.green,
-        ),
-      );
-
-      Navigator.pop(context, true); // quay lại sau khi điểm danh
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Điểm danh thất bại: $e'),
+          content: Text('Lỗi quét QR: $e'),
           backgroundColor: Colors.red,
         ),
       );
-      _handled = false; // cho phép quét lại
+      Navigator.pop(context, null);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Quét mã QR')),
+      // 🎨 CẬP NHẬT: Đã bỏ comment và thêm style
+      appBar: AppBar(
+        title: const Text('Quét mã QR'),
+        backgroundColor: Colors.deepPurpleAccent, // Màu tím
+        foregroundColor: Colors.white,           // Chữ và icon màu trắng
+        elevation: 1,
+      ),
       body: Stack(
         children: [
           MobileScanner(

@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:intl/intl.dart';
+import 'dart:io';
 
 import '../../api/api_client.dart';
 import '../../utils/config.dart';
 
-class CourseDetailPage extends StatefulWidget {
-  // Dữ liệu môn học được truyền từ trang StudentHome
-  final Map<String, dynamic> course;
+// 🎨 MỚI: Chỉ import FaceScan và CheckinPage
+// (Đã xóa QrScanPage và StudentCheckinLoadingPage)
+import 'face_scan_page.dart';
+import 'student_checkin_page.dart';
 
+class CourseDetailPage extends StatefulWidget {
+  final Map<String, dynamic> course;
   const CourseDetailPage({super.key, required this.course});
 
   @override
@@ -23,8 +27,6 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
   @override
   void initState() {
     super.initState();
-    // Cần thiết lập locale 'vi_VN' để DateFormat
-    // có thể hiển thị "Thứ Hai", "Thứ Ba"...
     Intl.defaultLocale = 'vi_VN';
     _loadHistory();
   }
@@ -42,7 +44,6 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
         throw Exception("Thiếu class_section_id");
       }
 
-      // API route: /api/student/class-sections/123/attendance
       final res = await ApiClient().dio.get(
         "${AppConfig.BASE_URL}${AppConfig.studentHistoryPath}/$classSectionId/attendance",
       );
@@ -72,25 +73,76 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
     }
   }
 
+  // 🎨 MỚI: Hàm xử lý quy trình (Flow) quét mặt
+  // (Bỏ qua hoàn toàn QR và Loading Page)
+  Future<void> _startFaceScanFlow(Map<String, dynamic> session) async {
+    print("===== DỮ LIỆU BUỔI HỌC (SESSION): $session =====");
+    if (!mounted) return;
+
+    // 1. Mở trang Quét Mặt (đây là "máy ảnh")
+    final File? facePhoto = await Navigator.push<File>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const FaceScanPage(),
+      ),
+    );
+    if (facePhoto == null || !mounted) return; // Người dùng bấm back
+
+    // 2. TẠO DỮ LIỆU BUỔI HỌC (SESSION DATA) MỚI
+    // Lấy thông tin chung của MÔN HỌC (từ widget.course)
+    // và trộn với thông tin của BUỔI HỌC (từ session)
+    final Map<String, dynamic> sessionData = {
+      // Dữ liệu từ MÔN HỌC (widget.course)
+      'course_name': widget.course['course_name'],
+      'class_name': widget.course['class_name'],
+      'course_code': widget.course['course_code'],
+
+      // Dữ liệu từ BUỔI HỌC (session lấy từ _history)
+      'date': session['date'],
+      'status': session['status'],
+
+      // Key đúng (theo log) là 'session_id'
+      'session_id': session['session_id'],
+    };
+
+    // 3. Mở thẳng trang StudentCheckinPage
+    //    (Bỏ qua StudentCheckinLoadingPage)
+    //    Chúng ta dùng 'await' để chờ trang này đóng lại
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => StudentCheckinPage(
+          session: sessionData, // Truyền dữ liệu đã trộn
+          photo: facePhoto,
+        ),
+      ),
+    );
+
+    // 4. Tải lại lịch sử để cập nhật "Có mặt"
+    //    (Sau khi trang StudentCheckinPage đóng lại)
+    await _loadHistory();
+  }
+
+
   /// 🔹 Tính toán số liệu thống kê
   int get totalSessions => _history.length;
   int get attendedSessions => _history.where((s) {
     return s['status'] == 'present' || s['status'] == 'late';
   }).length;
 
-  /// 🔹 Định dạng ngày tháng (vd: "Thứ Hai - 13/10/25")
+  /// 🔹 Định dạng ngày tháng
   String _formatDate(DateTime date) {
-    // 'EEEE' sẽ cho ra "Thứ Hai", "Thứ Ba"... (nhờ defaultLocale = 'vi_VN')
     final dayOfWeek = DateFormat('EEEE').format(date);
     final dayMonthYear = DateFormat('dd/MM/yy').format(date);
     return '$dayOfWeek - $dayMonthYear';
   }
 
-  /// 🔹 CẬP NHẬT: Widget hiển thị trạng thái (theo ảnh mới)
-  Widget _buildStatusWidget(String status, DateTime date) {
+  /// 🔹 CẬP NHẬT: Widget hiển thị trạng thái
+  //   (Giờ đây nhận 'session' thay vì 'status')
+  Widget _buildStatusWidget(Map<String, dynamic> session, DateTime date) {
     final now = DateTime.now();
-    // Chỉ so sánh ngày (bỏ qua giờ)
     final isToday = DateUtils.isSameDay(date, now);
+    final status = session['status']; // Lấy status từ session
 
     switch (status) {
       case 'present':
@@ -100,26 +152,35 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
         );
       case 'late':
         return const Text(
-          "Trễ", // Giữ lại logic này
+          "Trễ",
           style: TextStyle(
               color: Colors.orange, fontSize: 16, fontWeight: FontWeight.bold),
         );
       case 'absent':
         return const Text(
-          "Vắng", // Giữ lại logic này
+          "Vắng",
           style: TextStyle(
               color: Colors.red, fontSize: 16, fontWeight: FontWeight.bold),
         );
 
-    // Logic cho "ĐIỂM DANH", "?", và "Vắng" (nếu quá hạn)
       case 'pending':
       default:
         if (isToday) {
-          // 1. Nếu là hôm nay -> "ĐIỂM DANH"
-          return const Text(
-            "ĐIỂM DANH",
-            style: TextStyle(
-                color: Colors.red, fontSize: 16, fontWeight: FontWeight.bold),
+          // 1. "ĐIỂM DANH" (Button)
+          return TextButton(
+            // 🎨 MỚI: Gọi hàm _startFaceScanFlow và truyền 'session'
+            onPressed: () => _startFaceScanFlow(session),
+            style: TextButton.styleFrom(
+              padding: EdgeInsets.zero,
+              minimumSize: const Size(50, 30),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              alignment: Alignment.centerRight,
+            ),
+            child: const Text(
+              "ĐIỂM DANH",
+              style: TextStyle(
+                  color: Colors.red, fontSize: 16, fontWeight: FontWeight.bold),
+            ),
           );
         } else if (date.isAfter(now)) {
           // 2. Nếu là ngày tương lai -> "?"
@@ -128,7 +189,7 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
             style: TextStyle(color: Colors.black, fontSize: 16),
           );
         } else {
-          // 3. Nếu là ngày trong quá khứ (đã qua) -> "Vắng"
+          // 3. Nếu là ngày trong quá khứ -> "Vắng"
           return Text(
             "Vắng",
             style: TextStyle(
@@ -142,37 +203,45 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Lấy thông tin tĩnh từ 'widget.course' (do API lịch học trả về)
     final String courseName = widget.course['course_name'] ?? 'Chi tiết môn học';
     final String className = widget.course['class_name'] ?? '--';
 
     return Scaffold(
-      // CẬP NHẬT: AppBar
+      // --- 1. APP BAR ---
       appBar: AppBar(
         title: const Text("Trang chủ"),
-        backgroundColor: Colors.white,
-        elevation: 0, // Bỏ bóng
-        foregroundColor: Colors.black, // Màu chữ/icon
+        backgroundColor: Colors.deepPurpleAccent,
+        foregroundColor: Colors.white,
+        elevation: 1,
       ),
-      // CẬP NHẬT: Màu nền
+
+      // --- 2. NỀN TRẮNG ---
       backgroundColor: Colors.white,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // CẬP NHẬT: Thẻ thông tin môn học (theo ảnh)
+
+          // --- 3. THẺ THÔNG TIN MÔN HỌC ---
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(16.0),
-            margin: const EdgeInsets.fromLTRB(16, 0, 16, 16), // Thêm margin
+            margin: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+            padding: const EdgeInsets.all(20.0),
             decoration: BoxDecoration(
-              color: Colors.grey[200], // Màu nền xám
+              color: Colors.grey[100],
               borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 5,
+                  offset: const Offset(0, 2),
+                )
+              ],
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  courseName, // Dữ liệu này LẤY TỪ VIEW
+                  courseName,
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -180,49 +249,44 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  "Lớp: $className", // Dữ liệu này LẤY TỪ VIEW
+                  "Lớp: $className",
                   style: TextStyle(fontSize: 16, color: Colors.grey[800]),
                 ),
+                const SizedBox(height: 16),
+
+                // --- 4. DANH SÁCH LỊCH SỬ (BÊN TRONG THẺ) ---
+                _buildHistoryList(),
               ],
             ),
           ),
 
-          // CẬP NHẬT: Danh sách lịch sử điểm danh
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              // Tách riêng widget để xử lý loading/error/data
-              child: _buildHistoryList(),
-            ),
-          ),
-
-          // CẬP NHẬT: Thống kê (đặt ở dưới cùng)
+          // --- 5. THỐNG KÊ (Ở DƯỚI CÙNG) ---
           Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Divider(),
                 const SizedBox(height: 16),
-                // Chỉ hiển thị khi load xong và không lỗi
                 if (!_isLoading && _error == null) ...[
                   Text(
                     "Số buổi đã điểm danh: $attendedSessions/$totalSessions",
-                    style: const TextStyle(fontSize: 16),
+                    style: const TextStyle(fontSize: 16, color: Colors.black87),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     "Tổng số buổi: $totalSessions",
-                    style: const TextStyle(fontSize: 16),
+                    style: const TextStyle(fontSize: 16, color: Colors.black87),
                   ),
                 ] else if (_isLoading) ...[
-                  // Hiển thị placeholder khi đang load
                   const Text("Đang tải thống kê...",
                       style: TextStyle(fontSize: 16, color: Colors.grey)),
                 ]
               ],
             ),
           ),
+
+          const Spacer(),
         ],
       ),
     );
@@ -258,14 +322,17 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
       return const Center(child: Text("Chưa có buổi điểm danh nào."));
     }
 
-    // CẬP NHẬT: Hiển thị danh sách (không bọc trong Card)
     return ListView.separated(
       itemCount: _history.length,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
       separatorBuilder: (context, index) =>
-      const SizedBox(height: 20), // Tăng khoảng cách
+      const SizedBox(height: 20),
       itemBuilder: (context, index) {
+        // 🎨 MỚI: Lấy toàn bộ 'session'
         final session = _history[index];
-        final sessionDate = DateTime.parse(session['date']);
+        final sessionDate = DateTime.tryParse(session['date'] ?? '');
+        if (sessionDate == null) return const SizedBox.shrink();
 
         return Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -273,11 +340,12 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
             // Ngày tháng
             Text(
               _formatDate(sessionDate),
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
             ),
             // Trạng thái
+            // 🎨 MỚI: Truyền toàn bộ 'session'
             _buildStatusWidget(
-              session['status'],
+              session,
               sessionDate,
             ),
           ],
