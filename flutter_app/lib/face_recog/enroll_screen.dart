@@ -1,8 +1,7 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
-import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
-import 'package:image_picker/image_picker.dart';
-
+import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart'; // <-- cần cho Face
 import 'face_service.dart';
 import 'storage.dart';
 import 'face_service_singleton.dart';
@@ -43,7 +42,7 @@ class _EnrollScreenState extends State<EnrollScreen> {
       );
       _cam = CameraController(
         cam,
-        ResolutionPreset.low,
+        ResolutionPreset.low,          // nếu mượt rồi có thể nâng lên medium
         enableAudio: false,
         imageFormatGroup: ImageFormatGroup.yuv420,
       );
@@ -61,6 +60,8 @@ class _EnrollScreenState extends State<EnrollScreen> {
   void dispose() {
     _cam?.dispose();
     super.dispose(); // KHÔNG dispose _svc (singleton)
+    // không dispose _svc vì dùng singleton
+    super.dispose();
   }
 
   Future<void> _captureAndEnroll() async {
@@ -74,12 +75,18 @@ class _EnrollScreenState extends State<EnrollScreen> {
       setState(() { _msg = null; _busy = true; });
 
       try { await _cam!.setFlashMode(FlashMode.off); } catch (_) {}
+
+      // ✅ plugin có resumePreview(), KHÔNG có startPreview()
       if (_cam!.value.isPreviewPaused) {
         try { await _cam!.resumePreview(); } catch (_) {}
       }
 
       final XFile shot = await _cam!.takePicture();
 
+      // 1) Chụp
+      final XFile shot = await _cam!.takePicture();
+
+      // 2) Detect face
       List<Face> faces;
       try {
         faces = await _svc.detectFacesFromImageFile(shot.path);
@@ -92,6 +99,7 @@ class _EnrollScreenState extends State<EnrollScreen> {
         return;
       }
 
+      // 3) Embedding
       faces.sort((a, b) => b.boundingBox.width.compareTo(a.boundingBox.width));
       List<double>? emb;
       try {
@@ -105,6 +113,7 @@ class _EnrollScreenState extends State<EnrollScreen> {
         return;
       }
 
+      // 4) Lưu
       await _store.saveOne(widget.studentId, emb);
       setState(() { _msg = 'Đăng ký thành công cho ID ${widget.studentId}'; _busy = false; });
     } catch (e) {
@@ -167,6 +176,9 @@ class _EnrollScreenState extends State<EnrollScreen> {
                 child: const Text('Chọn ảnh & Lưu'),
               ),
             ],
+          ElevatedButton(
+            onPressed: _captureAndEnroll,
+            child: const Text('Chụp & Lưu Khuôn Mặt'),
           ),
           if (_msg != null)
             Padding(

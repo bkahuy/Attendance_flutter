@@ -29,13 +29,18 @@ class _QrScanPageState extends State<QrScanPage> {
     _handled = true;
 
     try {
-      final String token = barcode;
+      // Log raw barcode for debugging
+      print('[QrScanPage] scanned raw barcode: $barcode');
+
+      final uri = Uri.tryParse(barcode);
+      final String token = uri?.queryParameters['token'] ?? barcode;
+      print('[QrScanPage] extracted token: $token');
 
       if (widget.returnData) {
         // Chỉ trả về token cho trang Loading xử lý
         Navigator.pop(context, token);
       } else {
-        Navigator.pop(context, null);
+        Navigator.pop(context, token);
       }
     } catch (e) {
       if (!mounted) return;

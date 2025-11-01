@@ -27,8 +27,18 @@ class _ShowQrPageState extends State<ShowQrPage> {
     super.initState();
     print("--- MÀN HÌNH QR INIT ---"); // Lệnh debug
 
-    // Lấy token hoặc ID từ session
-    qrData = widget.session['token']?.toString() ?? widget.session['id']?.toString() ?? '';
+    // Prefer deep_link if server provided it (full URL), otherwise build a stable payload.
+    // Use full deep_link so student scanner can parse ?token=... reliably.
+    final tokenVal = widget.session['token']?.toString();
+    final deepLink = widget.session['deep_link']?.toString();
+    if (deepLink != null && deepLink.isNotEmpty) {
+      qrData = deepLink;
+    } else if (tokenVal != null && tokenVal.isNotEmpty) {
+      // Use a stable prefix so scanner code can recognise token strings if needed
+      qrData = 'attendance_token_$tokenVal';
+    } else {
+      qrData = widget.session['id']?.toString() ?? '';
+    }
 
 
     // Phân tích thời gian

@@ -21,7 +21,7 @@ class _HistoryPageState extends State<HistoryPage> {
   final _courseNameController = TextEditingController();
   final _classNameController = TextEditingController();
   final _locationController = TextEditingController();
-  final _timeController = TextEditingController();
+  final _starttimeController = TextEditingController();
 
   // 2. Trạng thái tải và danh sách kết quả
   bool _isLoading = false;
@@ -42,7 +42,7 @@ class _HistoryPageState extends State<HistoryPage> {
         courseName: _courseNameController.text,
         className: _classNameController.text,
         room: _locationController.text,
-        time: _timeController.text,
+        startTime: _starttimeController.text,
       );
 
       setState(() {
@@ -152,8 +152,8 @@ class _HistoryPageState extends State<HistoryPage> {
             const SizedBox(width: 12),
             Expanded(
               child: _buildSearchTextField(
-                controller: _timeController,
-                hintText: 'Giờ (HH:mm)',
+                controller: _starttimeController,
+                hintText: 'Giờ (HH:mm:ss)',
                 icon: Icons.access_time_outlined,
               ),
             ),
@@ -222,7 +222,7 @@ class _HistoryPageState extends State<HistoryPage> {
   // === HÀM _buildHistoryCard (Giữ nguyên) ===
   Widget _buildHistoryCard(BuildContext context, AttendanceHistory session) {
     return Card(
-      elevation: 3,
+      // elevation: 1,
       margin: const EdgeInsets.only(bottom: 16.0),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
@@ -279,7 +279,7 @@ class _HistoryPageState extends State<HistoryPage> {
               ),
               const SizedBox(width: 16),
               Text(
-                session.time, // Dữ liệu từ API
+                session.startTime, // Dữ liệu từ API
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -299,7 +299,7 @@ class _HistoryPageState extends State<HistoryPage> {
     _courseNameController.dispose();
     _classNameController.dispose();
     _locationController.dispose();
-    _timeController.dispose();
+    _starttimeController.dispose();
     super.dispose();
   }
 }

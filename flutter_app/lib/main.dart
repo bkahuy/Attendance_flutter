@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart'; // kDebugMode
 import 'package:provider/provider.dart';
 
 import 'api/api_client.dart';
@@ -18,7 +18,8 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   if (kDebugMode) {
     developer.log('App start');
-    // debugPrint = (String? message, {int? wrapWidth}) {}; // ĐỪNG tắt log
+    // chỉ tắt spam log khi DEBUG
+    debugPrint = (String? message, {int? wrapWidth}) {};
   }
   await initializeDateFormatting('vi_VN', null);
   await ApiClient().init();
@@ -46,12 +47,13 @@ class App extends StatelessWidget {
           useMaterial3: true,
         ),
         debugShowCheckedModeBanner: false,
+
+        // Màn hình mặc định
         home: const LoginPage(),
 
         // Route KHÔNG tham số
         routes: {
           '/login': (_) => const LoginPage(),
-          '/face/test-gallery': (_) => const TestGalleryScreen(), // <-- OK
         },
 
         // Route CÓ tham số
@@ -59,6 +61,15 @@ class App extends StatelessWidget {
           if (settings.name == '/face/enroll') {
             final int studentId = settings.arguments as int;
             return MaterialPageRoute(builder: (_) => EnrollScreen(studentId: studentId));
+          }
+          if (settings.name == '/face/recognize') {
+            final args = settings.arguments as Map<String, dynamic>;
+            return MaterialPageRoute(
+              builder: (_) => RecognizeScreen(
+                studentId: args['studentId'] as int,
+                sessionId: args['sessionId'] as int,
+              ),
+            );
           }
           if (settings.name == '/face/recognize') {
             final args = settings.arguments as Map<String, dynamic>;
