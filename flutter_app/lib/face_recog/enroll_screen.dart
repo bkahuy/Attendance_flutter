@@ -59,6 +59,7 @@ class _EnrollScreenState extends State<EnrollScreen> {
   @override
   void dispose() {
     _cam?.dispose();
+    super.dispose(); // KHÔNG dispose _svc (singleton)
     // không dispose _svc vì dùng singleton
     super.dispose();
   }
@@ -79,6 +80,8 @@ class _EnrollScreenState extends State<EnrollScreen> {
       if (_cam!.value.isPreviewPaused) {
         try { await _cam!.resumePreview(); } catch (_) {}
       }
+
+      final XFile shot = await _cam!.takePicture();
 
       // 1) Chụp
       final XFile shot = await _cam!.takePicture();
@@ -118,6 +121,33 @@ class _EnrollScreenState extends State<EnrollScreen> {
     }
   }
 
+  // === NEW: Enroll từ ảnh gallery ===
+  Future<void> _pickAndEnroll() async {
+    try {
+      setState(() { _msg = null; _busy = true; });
+      final x = await ImagePicker().pickImage(source: ImageSource.gallery);
+      if (x == null) { setState(() => _busy = false); return; }
+
+      final faces = await _svc.detectFacesFromImageFile(x.path);
+      if (faces.isEmpty) {
+        setState(() { _msg = 'Không thấy khuôn mặt trong ảnh'; _busy = false; });
+        return;
+      }
+      faces.sort((a, b) => b.boundingBox.width.compareTo(a.boundingBox.width));
+
+      final emb = await _svc.embeddingFromFile(x.path, faces.first);
+      if (emb == null) {
+        setState(() { _msg = 'Không tạo được embedding từ ảnh'; _busy = false; });
+        return;
+      }
+
+      await _store.saveOne(widget.studentId, emb);
+      setState(() { _msg = 'Đăng ký thành công (ảnh gallery)'; _busy = false; });
+    } catch (e) {
+      setState(() { _msg = 'Lỗi: $e'; _busy = false; });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_busy) {
@@ -133,6 +163,19 @@ class _EnrollScreenState extends State<EnrollScreen> {
               child: CameraPreview(_cam!),
             ),
           const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              ElevatedButton(
+                onPressed: _captureAndEnroll,
+                child: const Text('Chụp & Lưu'),
+              ),
+              const SizedBox(width: 12),
+              OutlinedButton(
+                onPressed: _pickAndEnroll,
+                child: const Text('Chọn ảnh & Lưu'),
+              ),
+            ],
           ElevatedButton(
             onPressed: _captureAndEnroll,
             child: const Text('Chụp & Lưu Khuôn Mặt'),

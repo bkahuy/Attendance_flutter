@@ -21,8 +21,11 @@ class FaceService {
 
   late final Interpreter _interpreter;
   late final ImageProcessor _processor;
-  late final TensorImage _tensorInput;
-  late final TensorBuffer _tensorOutput;
+  late TensorImage _tensorInput;
+  late TensorBuffer _tensorOutput;
+
+  late List<int> _inShape;   // [1, 112, 112, 3]
+  late List<int> _outShape;  // [1, 192] hoặc tương tự
 
   bool _ready = false;
   bool get isReady => _ready;
@@ -49,6 +52,7 @@ class FaceService {
     _ready = true;
   }
 
+
   Future<List<Face>> detectFacesFromImageFile(String path) async {
     final input = InputImage.fromFilePath(path);
     return _detector.processImage(input);
@@ -56,6 +60,11 @@ class FaceService {
 
   /// Đọc ảnh -> (isolate) decode/crop/resize -> TensorImage -> run -> L2 norm
   Future<List<double>?> embeddingFromFile(String path, Face face) async {
+    if (!_ready) {
+      // Nếu quên load() sẽ lỗi precondition
+      await load();
+    }
+
     final bytes = await File(path).readAsBytes();
 
     // Clamp bounding box an toàn
@@ -77,14 +86,16 @@ class FaceService {
     // Run model
     _interpreter.run(processed.buffer, _tensorOutput.buffer);
 
-    final raw = _tensorOutput.getDoubleList();
+    // 4) lấy ra list double và L2-normalize
+    final raw = _tensorOutput.getDoubleList(); // hoặc getFloatList rồi map -> double
     return _l2norm(raw);
   }
 
-  MapEntry<int,double>? match(
+  MapEntry<int, double>? match(
       List<double> probe,
-      Map<int, List<double>> db,
-      {double threshold = 0.6}) {
+      Map<int, List<double>> db, {
+        double threshold = 0.6,
+      }) {
     int? bestId;
     double bestScore = -1;
     for (final e in db.entries) {
@@ -102,7 +113,8 @@ class FaceService {
 
   double _cosine(List<double> a, List<double> b) {
     double dot = 0, na = 0, nb = 0;
-    for (int i = 0; i < a.length; i++) {
+    final n = min(a.length, b.length);
+    for (int i = 0; i < n; i++) {
       dot += a[i] * b[i];
       na += a[i] * a[i];
       nb += b[i] * b[i];
@@ -114,7 +126,8 @@ class FaceService {
     double n = 0;
     for (final x in v) n += x * x;
     n = sqrt(n);
-    return v.map((e) => e / (n == 0 ? 1 : n)).toList();
+    if (n == 0) return v;
+    return v.map((e) => e / n).toList();
   }
 
   Future<void> dispose() async {

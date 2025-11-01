@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart'; // kDebugMode
 import 'package:provider/provider.dart';
+
 import 'api/api_client.dart';
-import 'screens/login_page.dart';
 import 'services/auth_service.dart';
+import 'screens/login_page.dart';
 
 import 'face_recog/enroll_screen.dart';
 import 'face_recog/recognize_screen.dart';
+import 'face_recog/test_gallery.dart';        // <-- THÊM IMPORT NÀY
 
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -39,10 +41,7 @@ class App extends StatelessWidget {
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
         ],
-        supportedLocales: const [
-          Locale('vi', 'VN'),
-          Locale('en', 'US'),
-        ],
+        supportedLocales: const [Locale('vi', 'VN'), Locale('en', 'US')],
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(seedColor: Color(0xFF111827)),
           useMaterial3: true,
@@ -61,8 +60,15 @@ class App extends StatelessWidget {
         onGenerateRoute: (settings) {
           if (settings.name == '/face/enroll') {
             final int studentId = settings.arguments as int;
+            return MaterialPageRoute(builder: (_) => EnrollScreen(studentId: studentId));
+          }
+          if (settings.name == '/face/recognize') {
+            final args = settings.arguments as Map<String, dynamic>;
             return MaterialPageRoute(
-              builder: (_) => EnrollScreen(studentId: studentId),
+              builder: (_) => RecognizeScreen(
+                studentId: args['studentId'] as int,
+                sessionId: args['sessionId'] as int,
+              ),
             );
           }
           if (settings.name == '/face/recognize') {
