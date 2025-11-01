@@ -146,7 +146,7 @@ class AttendanceService {
     String? courseName, // Tên môn
     String? className,  // Tên lớp
     String? room,   // Phòng
-    String? time,       // Giờ
+    String? startTime,       // Giờ
   }) async {
 
     // === THÊM LOGIC TẠO THAM SỐ ===
@@ -157,13 +157,13 @@ class AttendanceService {
       queryParameters['course_name'] = courseName;
     }
     if (className != null && className.isNotEmpty) {
-      queryParameters['class_name'] = className;
+      queryParameters['class_names'] = className;
     }
     if (room != null && room.isNotEmpty) {
       queryParameters['room'] = room;
     }
-    if (time != null && time.isNotEmpty) {
-      queryParameters['time'] = time;
+    if (startTime != null && startTime.isNotEmpty) {
+      queryParameters['start_time'] = startTime;
     }
 
     final res = await _dio.get(
