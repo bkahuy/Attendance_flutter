@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../models/user.dart';
+import '../api/auth_repository.dart';    // repo login trả (AppUser, String token)
+import 'teacher/teacher_home.dart';
+import 'student/student_home.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -34,6 +37,28 @@ class _LoginPageState extends State<LoginPage> {
         password: _passCtrl.text,
       );
 
+
+
+      // // ✅ Điều hướng theo role
+      // switch (user.role) {
+      //   case 'teacher':
+      //     Navigator.of(context).pushReplacement(
+      //       MaterialPageRoute(builder: (_) => TeacherHome(user: user)),
+      //     );
+      //     break;
+      //   case 'student':
+      //     Navigator.of(context).pushReplacement(
+      //       MaterialPageRoute(builder: (_) => StudentHome(user: user)),
+      //     );
+      //     break;
+      //   default:
+      //     ScaffoldMessenger.of(context).showSnackBar(
+      //       SnackBar(content: Text('Không xác định được vai trò: ${user.role}')),
+      //     );
+      // }
+
+
+
       if (!mounted) return;
 
       // ✅ Điều hướng: student -> màn face (recognize), teacher -> sau này về trang GV
@@ -43,8 +68,10 @@ class _LoginPageState extends State<LoginPage> {
       } else if (user.role == 'teacher') {
         // TODO: thay bằng route màn chủ GV khi có
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Đăng nhập giảng viên thành công!')),
-        );
+            await Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (_) => TeacherHome(user: user)),
+        )
+      );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Đăng nhập thành công (role: ${user.role})')),

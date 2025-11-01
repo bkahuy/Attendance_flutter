@@ -1,10 +1,13 @@
+// lib/face_recog/enroll_screen.dart
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
-import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart'; // <-- cần cho Face
+import 'package:image_picker/image_picker.dart';
+import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
+
 import 'face_service.dart';
-import 'storage.dart';
 import 'face_service_singleton.dart';
+import 'storage.dart';
 
 class EnrollScreen extends StatefulWidget {
   final int studentId;
@@ -24,6 +27,7 @@ class _EnrollScreenState extends State<EnrollScreen> {
   @override
   void initState() {
     super.initState();
+    // Đợi khung hình đầu tiên rồi mới init cho mượt
     WidgetsBinding.instance.addPostFrameCallback((_) => _init());
   }
 
@@ -31,7 +35,7 @@ class _EnrollScreenState extends State<EnrollScreen> {
     try {
       setState(() => _busy = true);
 
-      // 1) Load model trước (singleton)
+      // 1) Load model trước (singleton, dùng chung toàn app)
       _svc = await FaceServiceHolder.I.get();
 
       // 2) Init camera sau
@@ -40,9 +44,10 @@ class _EnrollScreenState extends State<EnrollScreen> {
             (c) => c.lensDirection == CameraLensDirection.front,
         orElse: () => cams.first,
       );
+
       _cam = CameraController(
         cam,
-        ResolutionPreset.low,          // nếu mượt rồi có thể nâng lên medium
+        ResolutionPreset.low,          // đủ dùng, đỡ lag emulator
         enableAudio: false,
         imageFormatGroup: ImageFormatGroup.yuv420,
       );
@@ -59,53 +64,35 @@ class _EnrollScreenState extends State<EnrollScreen> {
   @override
   void dispose() {
     _cam?.dispose();
-    super.dispose(); // KHÔNG dispose _svc (singleton)
-    // không dispose _svc vì dùng singleton
+    // Không dispose _svc (singleton)
     super.dispose();
   }
 
-  Future<void> _captureAndEnroll() async {
-    if (_cam == null || !_cam!.value.isInitialized) {
-      setState(() => _msg = 'Camera chưa sẵn sàng');
-      return;
-    }
-    if (_cam!.value.isTakingPicture) return;
-
+  // ==== Core: xử lý 1 file ảnh -> detect face -> embedding -> save ====
+  Future<void> _processFile(String path) async {
     try {
-      setState(() { _msg = null; _busy = true; });
-
-      try { await _cam!.setFlashMode(FlashMode.off); } catch (_) {}
-
-      // ✅ plugin có resumePreview(), KHÔNG có startPreview()
-      if (_cam!.value.isPreviewPaused) {
-        try { await _cam!.resumePreview(); } catch (_) {}
-      }
-
-      final XFile shot = await _cam!.takePicture();
-
-      // 1) Chụp
-      final XFile shot = await _cam!.takePicture();
-
-      // 2) Detect face
+      // Detect
       List<Face> faces;
       try {
-        faces = await _svc.detectFacesFromImageFile(shot.path);
+        faces = await _svc.detectFacesFromImageFile(path);
       } catch (e) {
         setState(() { _msg = 'Detect face lỗi: $e'; _busy = false; });
         return;
       }
       if (faces.isEmpty) {
-        setState(() { _msg = 'Không thấy khuôn mặt. Chụp gần/đủ sáng.'; _busy = false; });
+        setState(() { _msg = 'Không thấy khuôn mặt. Hãy chọn/chụp ảnh rõ mặt.'; _busy = false; });
         return;
       }
 
-      // 3) Embedding
+      // Lấy mặt lớn nhất
       faces.sort((a, b) => b.boundingBox.width.compareTo(a.boundingBox.width));
+
+      // Embedding
       List<double>? emb;
       try {
-        emb = await _svc.embeddingFromFile(shot.path, faces.first);
+        emb = await _svc.embeddingFromFile(path, faces.first);
       } catch (e) {
-        setState(() { _msg = 'Embedding lỗi: $e'; _busy = false; });
+        setState(() { _msg = 'Embedding lỗi (run): $e'; _busy = false; });
         return;
       }
       if (emb == null) {
@@ -113,46 +100,67 @@ class _EnrollScreenState extends State<EnrollScreen> {
         return;
       }
 
-      // 4) Lưu
+      // Lưu vào storage local theo studentId
       await _store.saveOne(widget.studentId, emb);
-      setState(() { _msg = 'Đăng ký thành công cho ID ${widget.studentId}'; _busy = false; });
+
+      setState(() {
+        _msg = '✅ Đăng ký thành công cho ID ${widget.studentId}';
+        _busy = false;
+      });
     } catch (e) {
       setState(() { _msg = 'Lỗi: $e'; _busy = false; });
     }
   }
 
-  // === NEW: Enroll từ ảnh gallery ===
-  Future<void> _pickAndEnroll() async {
+  // ==== Nút: chụp từ camera ====
+  Future<void> _captureAndEnroll() async {
+    if (_cam == null || !_cam!.value.isInitialized) {
+      setState(() => _msg = 'Camera chưa sẵn sàng');
+      return;
+    }
+    if (_cam!.value.isTakingPicture) return;
+
+    setState(() { _msg = null; _busy = true; });
+
     try {
-      setState(() { _msg = null; _busy = true; });
-      final x = await ImagePicker().pickImage(source: ImageSource.gallery);
-      if (x == null) { setState(() => _busy = false); return; }
-
-      final faces = await _svc.detectFacesFromImageFile(x.path);
-      if (faces.isEmpty) {
-        setState(() { _msg = 'Không thấy khuôn mặt trong ảnh'; _busy = false; });
-        return;
-      }
-      faces.sort((a, b) => b.boundingBox.width.compareTo(a.boundingBox.width));
-
-      final emb = await _svc.embeddingFromFile(x.path, faces.first);
-      if (emb == null) {
-        setState(() { _msg = 'Không tạo được embedding từ ảnh'; _busy = false; });
-        return;
+      // đảm bảo preview đang chạy
+      try { await _cam!.setFlashMode(FlashMode.off); } catch (_) {}
+      if (_cam!.value.isPreviewPaused) {
+        try { await _cam!.resumePreview(); } catch (_) {}
       }
 
-      await _store.saveOne(widget.studentId, emb);
-      setState(() { _msg = 'Đăng ký thành công (ảnh gallery)'; _busy = false; });
+      final XFile shot = await _cam!.takePicture();
+      await _processFile(shot.path);
     } catch (e) {
-      setState(() { _msg = 'Lỗi: $e'; _busy = false; });
+      setState(() { _msg = 'Chụp ảnh lỗi: $e'; _busy = false; });
+    }
+  }
+
+  // ==== Nút: chọn ảnh từ thư viện ====
+  Future<void> _pickAndEnroll() async {
+    setState(() { _msg = null; _busy = true; });
+    try {
+      final picker = ImagePicker();
+      final XFile? picked = await picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 95,
+      );
+      if (picked == null) {
+        setState(() { _busy = false; _msg = 'Đã huỷ chọn ảnh'; });
+        return;
+      }
+      await _processFile(picked.path);
+    } catch (e) {
+      setState(() { _msg = 'Chọn ảnh lỗi: $e'; _busy = false; });
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_busy) {
+    if (_busy && (_cam == null || !_cam!.value.isInitialized)) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
+
     return Scaffold(
       appBar: AppBar(title: const Text('Đăng ký khuôn mặt')),
       body: Column(
@@ -163,27 +171,43 @@ class _EnrollScreenState extends State<EnrollScreen> {
               child: CameraPreview(_cam!),
             ),
           const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              ElevatedButton(
-                onPressed: _captureAndEnroll,
-                child: const Text('Chụp & Lưu'),
-              ),
-              const SizedBox(width: 12),
-              OutlinedButton(
-                onPressed: _pickAndEnroll,
-                child: const Text('Chọn ảnh & Lưu'),
-              ),
-            ],
-          ElevatedButton(
-            onPressed: _captureAndEnroll,
-            child: const Text('Chụp & Lưu Khuôn Mặt'),
+
+          // Hai nút: chụp & chọn ảnh
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: _busy ? null : _captureAndEnroll,
+                    child: const Text('Chụp & Lưu'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: _busy ? null : _pickAndEnroll,
+                    child: const Text('Chọn ảnh & Lưu'),
+                  ),
+                ),
+              ],
+            ),
           ),
+
+          if (_busy) const Padding(
+            padding: EdgeInsets.all(12),
+            child: CircularProgressIndicator(),
+          ),
+
           if (_msg != null)
             Padding(
               padding: const EdgeInsets.all(12),
-              child: Text(_msg!, style: const TextStyle(color: Colors.green)),
+              child: Text(
+                _msg!,
+                style: TextStyle(
+                  color: _msg!.startsWith('✅') ? Colors.green : Colors.red,
+                ),
+              ),
             ),
         ],
       ),
