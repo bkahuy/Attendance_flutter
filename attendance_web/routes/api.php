@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\{AuthController,TeacherController,StudentController,AttendanceController,QrController,StatsController};
+use App\Http\Controllers\FaceController;
 
 // Auth (JWT cho Flutter)
 Route::prefix('auth')->group(function(){
@@ -10,6 +11,11 @@ Route::prefix('auth')->group(function(){
     Route::middleware('auth:api')->post('refresh',[AuthController::class,'refresh']);
     Route::middleware('auth:api')->post('logout',[AuthController::class,'logout']);
     Route::post('change-password', [AuthController::class, 'changePassword']);
+});
+
+Route::middleware('auth:api')->group(function () {
+    Route::post('/face/enroll', [FaceController::class, 'enroll']);
+    Route::post('/face/verify', [FaceController::class, 'verify']);
 });
 
 
