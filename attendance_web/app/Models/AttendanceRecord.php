@@ -11,7 +11,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class AttendanceRecord extends Model
 {
     public $timestamps = false; // dùng created_at từ DB default
-    protected $fillable = ['attendance_session_id','student_id','status','photo_path','gps_lat','gps_lng','note','created_at'];
+    // app/Models/AttendanceRecord.php
+    protected $fillable = [
+        'attendance_session_id','student_id','status','photo_path',
+        'gps_lat','gps_lng','note','created_at',
+        // thêm:
+        'method','score',
+    ];
+
 
 
     public function session(): BelongsTo { return $this->belongsTo(AttendanceSession::class, 'attendance_session_id'); }

@@ -1,0 +1,192 @@
+LastSessions<|||>1<|||>Laragon.MySQL
+LastActiveSession<|||>1<|||>Laragon.MySQL
+ColWidths_connform.ListSessions<|||>1<|||>163,50,50,50,50,50,10
+ColsVisible_connform.ListSessions<|||>1<|||>0,1,4,6
+ColPositions_connform.ListSessions<|||>1<|||>0,1,2,3,4,5,6
+ColSort_connform.ListSessions<|||>1<|||>0,0
+ColWidths_frmTableEditor.listColumns<|||>1<|||>46,100,152,90,60,65,50,117,130,139,100,100
+ColsVisible_frmTableEditor.listColumns<|||>1<|||>0,1,2,3,4,5,6,7,8,9,10,11
+ColPositions_frmTableEditor.listColumns<|||>1<|||>0,1,2,3,4,5,6,7,8,9,10,11
+ColSort_frmTableEditor.listColumns<|||>1<|||>-1,0
+ColWidths_frmTableEditor.treeIndexes<|||>1<|||>234,100,80,120,80
+ColsVisible_frmTableEditor.treeIndexes<|||>1<|||>0,1,2,3,4
+ColPositions_frmTableEditor.treeIndexes<|||>1<|||>0,1,2,3,4
+ColSort_frmTableEditor.treeIndexes<|||>1<|||>-1,0
+ColWidths_frmTableEditor.listForeignKeys<|||>1<|||>200,80,100,80,80,80
+ColsVisible_frmTableEditor.listForeignKeys<|||>1<|||>0,1,2,3,4,5
+ColPositions_frmTableEditor.listForeignKeys<|||>1<|||>0,1,2,3,4,5
+ColSort_frmTableEditor.listForeignKeys<|||>1<|||>-1,0
+ColWidths_frmTableEditor.listCheckConstraints<|||>1<|||>200,420
+ColsVisible_frmTableEditor.listCheckConstraints<|||>1<|||>0,1
+ColPositions_frmTableEditor.listCheckConstraints<|||>1<|||>0,1
+ColSort_frmTableEditor.listCheckConstraints<|||>1<|||>-1,0
+MainWinOnMonitor<|||>3<|||>0
+ColWidths_MainForm.ListDatabases<|||>1<|||>150,80,50,50,50,50,50,50,50,50,120
+ColsVisible_MainForm.ListDatabases<|||>1<|||>0,1,2,3,4,5,6,7,8,9,10
+ColPositions_MainForm.ListDatabases<|||>1<|||>0,1,2,3,4,5,6,7,8,9,10
+ColSort_MainForm.ListDatabases<|||>1<|||>0,0
+ColWidths_MainForm.ListVariables<|||>1<|||>160,200,316
+ColsVisible_MainForm.ListVariables<|||>1<|||>0,1,2
+ColPositions_MainForm.ListVariables<|||>1<|||>0,1,2
+ColSort_MainForm.ListVariables<|||>1<|||>0,0
+ColWidths_MainForm.ListStatus<|||>1<|||>160,316,100,100
+ColsVisible_MainForm.ListStatus<|||>1<|||>0,1,2,3
+ColPositions_MainForm.ListStatus<|||>1<|||>0,1,2,3
+ColSort_MainForm.ListStatus<|||>1<|||>0,0
+ColWidths_MainForm.ListProcesses<|||>1<|||>70,80,80,80,80,50,50,186
+ColsVisible_MainForm.ListProcesses<|||>1<|||>0,1,2,3,4,5,6,7
+ColPositions_MainForm.ListProcesses<|||>1<|||>0,1,2,3,4,5,6,7
+ColSort_MainForm.ListProcesses<|||>1<|||>0,1
+ColWidths_MainForm.ListCommandStats<|||>1<|||>120,100,100,100,256
+ColsVisible_MainForm.ListCommandStats<|||>1<|||>0,1,2,3,4
+ColPositions_MainForm.ListCommandStats<|||>1<|||>0,1,2,3,4
+ColSort_MainForm.ListCommandStats<|||>1<|||>1,1
+ColWidths_MainForm.ListTables<|||>1<|||>120,70,70,120,120,70,100,50,70,70,70,70,70,90,120,70,70,70,50
+ColsVisible_MainForm.ListTables<|||>1<|||>0,1,2,3,4,5,6,18
+ColPositions_MainForm.ListTables<|||>1<|||>0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18
+ColSort_MainForm.ListTables<|||>1<|||>0,0
+MainWinWidth<|||>3<|||>999
+MainWinHeight<|||>3<|||>593
+CreateDbCollation<|||>1<|||>armscii8_bin
+MainWinLeft<|||>3<|||>334
+MainWinTop<|||>3<|||>141
+querymemoheight<|||>3<|||>557
+MainWinMaximized<|||>3<|||>1
+sqloutheight<|||>3<|||>202
+FileDialogEncoding_MainForm<|||>3<|||>0
+SQLFile0<|||>1<|||>E:\Android\Attendance_flutter\csdl_xinhon.sql
+SQLFile1<|||>1<|||>D:\laragon\bin\heidisql\Backups\query-tab-2025-10-23_00-51-08-745.sql
+SQLFile2<|||>1<|||>D:\Everything\Desktop\sql_old.sql
+SQLFile3<|||>1<|||>D:\Everything\Desktop\csdl_xinhon.sql
+SQLFile4<|||>1<|||>D:\laragon\bin\heidisql\Backups\query-tab-2025-10-19_09-31-23-254.sql
+SQLFile5<|||>1<|||>D:\laragon\bin\heidisql\Backups\query-tab-2025-10-12_21-53-34-400.sql
+FindDialogSearchHistory<|||>1<|||>face_templates_simple<{{{><}}}>
+FontSize<|||>3<|||>14
+Servers\Laragon.MySQL\SessionCreated<|||>1<|||>2024-12-16 22:28:25
+Servers\Laragon.MySQL\Host<|||>1<|||>103.75.183.227
+Servers\Laragon.MySQL\WindowsAuth<|||>3<|||>0
+Servers\Laragon.MySQL\CleartextPluginEnabled<|||>3<|||>0
+Servers\Laragon.MySQL\User<|||>1<|||>bkhuy204
+Servers\Laragon.MySQL\Password<|||>1<|||>363B3534363434384C797D4
+Servers\Laragon.MySQL\LoginPrompt<|||>3<|||>0
+Servers\Laragon.MySQL\Port<|||>1<|||>3306
+Servers\Laragon.MySQL\NetType<|||>3<|||>0
+Servers\Laragon.MySQL\Compressed<|||>3<|||>0
+Servers\Laragon.MySQL\LocalTimeZone<|||>3<|||>0
+Servers\Laragon.MySQL\QueryTimeout<|||>3<|||>30
+Servers\Laragon.MySQL\KeepAlive<|||>3<|||>20
+Servers\Laragon.MySQL\FullTableStatus<|||>3<|||>1
+Servers\Laragon.MySQL\Databases<|||>1<|||>
+Servers\Laragon.MySQL\Library<|||>1<|||>libmariadb.dll
+Servers\Laragon.MySQL\Comment<|||>1<|||>
+Servers\Laragon.MySQL\StartupScriptFilename<|||>1<|||>
+Servers\Laragon.MySQL\TreeBackground<|||>3<|||>536870911
+Servers\Laragon.MySQL\SSHtunnelActive<|||>3<|||>0
+Servers\Laragon.MySQL\SshExecutable<|||>1<|||>plink.exe
+Servers\Laragon.MySQL\SSHtunnelHost<|||>1<|||>
+Servers\Laragon.MySQL\SSHtunnelHostPort<|||>3<|||>22
+Servers\Laragon.MySQL\SSHtunnelUser<|||>1<|||>
+Servers\Laragon.MySQL\SSHtunnelPassword<|||>1<|||>8
+Servers\Laragon.MySQL\SSHtunnelTimeout<|||>3<|||>4
+Servers\Laragon.MySQL\SSHtunnelPrivateKey<|||>1<|||>
+Servers\Laragon.MySQL\SSHtunnelPort<|||>3<|||>3307
+Servers\Laragon.MySQL\SSL_Active<|||>3<|||>0
+Servers\Laragon.MySQL\SSL_Key<|||>1<|||>
+Servers\Laragon.MySQL\SSL_Cert<|||>1<|||>
+Servers\Laragon.MySQL\SSL_CA<|||>1<|||>
+Servers\Laragon.MySQL\SSL_Cipher<|||>1<|||>
+Servers\Laragon.MySQL\SSL_Verification<|||>3<|||>2
+Servers\Laragon.MySQL\IgnoreDatabasePattern<|||>1<|||>
+Servers\Laragon.MySQL\LogFileDdl<|||>3<|||>0
+Servers\Laragon.MySQL\LogFileDml<|||>3<|||>0
+Servers\Laragon.MySQL\LogFilePath<|||>1<|||>C:\Users\Leo\AppData\Roaming\HeidiSQL\Logs\%session\%db\%y%m%d.sql
+Servers\Laragon.MySQL\ServerVersionFull<|||>1<|||>10.4.32-MariaDB - mariadb.org binary distribution
+Servers\Laragon.MySQL\ConnectCount<|||>3<|||>10
+Servers\Laragon.MySQL\ServerVersion<|||>3<|||>100432
+Servers\Laragon.MySQL\LastConnect<|||>1<|||>2025-10-30 20:37:01
+Servers\Laragon.MySQL\lastUsedDB<|||>1<|||>attendance
+Servers\Laragon.MySQL\RefusedCount<|||>3<|||>5
+Servers\Laragon.MySQL\QueryHistory\1<|||>1<|||>2025-10-12 22:05:08|attendence|47|create table users (<{{{><}}}>  id BIGINT UNSIGNED AUTO_INCREMENT primary key,<{{{><}}}>  name VARCHAR(150) not null,<{{{><}}}>  email VARCHAR(150) not null unique,<{{{><}}}>  password VARCHAR(255) not null,<{{{><}}}>  role ENUM('admin', 'teacher', 'student') not null,<{{{><}}}>  phone VARCHAR(30) null,<{{{><}}}>  status ENUM('active', 'inactive', 'blocked') not null default 'active',<{{{><}}}>  last_login_at DATETIME null,<{{{><}}}>  created_at DATETIME not null default CURRENT_TIMESTAMP,<{{{><}}}>  updated_at DATETIME not null default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,<{{{><}}}>  INDEX idx_users_role (role),<{{{><}}}>  INDEX idx_users_status (status)<{{{><}}}>) ENGINE = InnoDB;
+Servers\Laragon.MySQL\QueryHistory\2<|||>1<|||>2025-10-12 22:05:17|attendence|47|create table students (<{{{><}}}>  id BIGINT UNSIGNED AUTO_INCREMENT primary key,<{{{><}}}>  user_id BIGINT UNSIGNED not null unique,<{{{><}}}>  student_code VARCHAR(50) not null unique,<{{{><}}}>  faculty VARCHAR(150) null,<{{{><}}}>  class_name VARCHAR(150) null,<{{{><}}}>  extra_info JSON null,<{{{><}}}>  foreign KEY (user_id) references users (id) on delete CASCADE on update CASCADE<{{{><}}}>) ENGINE = InnoDB;
+Servers\Laragon.MySQL\QueryHistory\3<|||>1<|||>2025-10-12 22:05:21|attendence|78|create table teachers (<{{{><}}}>  id BIGINT UNSIGNED AUTO_INCREMENT primary key,<{{{><}}}>  user_id BIGINT UNSIGNED not null unique,<{{{><}}}>  teacher_code VARCHAR(50) not null unique,<{{{><}}}>  dept VARCHAR(150) null,<{{{><}}}>  foreign KEY (user_id) references users (id) on delete CASCADE on update CASCADE<{{{><}}}>) ENGINE = InnoDB;
+Servers\Laragon.MySQL\QueryHistory\4<|||>1<|||>2025-10-12 22:05:24|attendence|47|create table courses (<{{{><}}}>  id BIGINT UNSIGNED AUTO_INCREMENT primary key,<{{{><}}}>  code VARCHAR(50) not null unique,<{{{><}}}>  name VARCHAR(200) not null,<{{{><}}}>  credits TINYINT UNSIGNED not null default 3,<{{{><}}}>  created_at DATETIME not null default CURRENT_TIMESTAMP,<{{{><}}}>  updated_at DATETIME not null default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP<{{{><}}}>) ENGINE = InnoDB;
+Servers\Laragon.MySQL\QueryHistory\5<|||>1<|||>2025-10-12 22:05:27|attendence|31|create table class_sections (<{{{><}}}>  id BIGINT UNSIGNED AUTO_INCREMENT primary key,<{{{><}}}>  course_id BIGINT UNSIGNED not null,<{{{><}}}>  teacher_id BIGINT UNSIGNED not null,<{{{><}}}>  term VARCHAR(50) not null,<{{{><}}}>  room VARCHAR(50) null,<{{{><}}}>  capacity INT UNSIGNED null,<{{{><}}}>  start_date DATE null,<{{{><}}}>  end_date DATE null,<{{{><}}}>  created_at DATETIME not null default CURRENT_TIMESTAMP,<{{{><}}}>  updated_at DATETIME not null default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,<{{{><}}}>  unique KEY uq_course_term_teacher (course_id, term, teacher_id),<{{{><}}}>  foreign KEY (course_id) references courses (id) on delete RESTRICT on update CASCADE,<{{{><}}}>  foreign KEY (teacher_id) references teachers (id) on delete RESTRICT on update CASCADE,<{{{><}}}>  INDEX idx_class_term (term),<{{{><}}}>  INDEX idx_class_teacher (teacher_id)<{{{><}}}>) ENGINE = InnoDB;
+Servers\Laragon.MySQL\QueryHistory\6<|||>1<|||>2025-10-12 22:05:30|attendence|47|create table class_section_students (<{{{><}}}>  id BIGINT UNSIGNED AUTO_INCREMENT primary key,<{{{><}}}>  class_section_id BIGINT UNSIGNED not null,<{{{><}}}>  student_id BIGINT UNSIGNED not null,<{{{><}}}>  enrolled_at DATETIME not null default CURRENT_TIMESTAMP,<{{{><}}}>  unique KEY uq_cls_student (class_section_id, student_id),<{{{><}}}>  foreign KEY (class_section_id) references class_sections (id) on delete CASCADE on update CASCADE,<{{{><}}}>  foreign KEY (student_id) references students (id) on delete CASCADE on update CASCADE,<{{{><}}}>  INDEX idx_cls_student (student_id)<{{{><}}}>) ENGINE = InnoDB;
+Servers\Laragon.MySQL\QueryHistory\7<|||>1<|||>2025-10-12 22:05:33|attendence|188|create table schedules (<{{{><}}}>  id BIGINT UNSIGNED AUTO_INCREMENT primary key,<{{{><}}}>  class_section_id BIGINT UNSIGNED not null,<{{{><}}}>  date DATE null,<{{{><}}}>  weekday TINYINT UNSIGNED null, -- 0=Monday .. 6=Sunday (matches WEEKDAY())<{{{><}}}>  start_time TIME not null,<{{{><}}}>  end_time TIME not null,<{{{><}}}>  recurring_flag TINYINT (1) not null default 0,<{{{><}}}>  location_lat DECIMAL(10, 7) null,<{{{><}}}>  location_lng DECIMAL(10, 7) null,<{{{><}}}>  created_at DATETIME not null default CURRENT_TIMESTAMP,<{{{><}}}>  updated_at DATETIME not null default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,<{{{><}}}>  foreign KEY (class_section_id) references class_sections (id) on delete CASCADE on update CASCADE,<{{{><}}}>  INDEX idx_schedules_cls (class_section_id),<{{{><}}}>  INDEX idx_schedules_date (date),<{{{><}}}>  INDEX idx_schedules_weekday (weekday, start_time)<{{{><}}}>) ENGINE = InnoDB;
+Servers\Laragon.MySQL\QueryHistory\8<|||>1<|||>2025-10-12 22:05:37|attendence|109|create table attendance_sessions (<{{{><}}}>  id BIGINT UNSIGNED AUTO_INCREMENT primary key,<{{{><}}}>  class_section_id BIGINT UNSIGNED not null,<{{{><}}}>  schedule_id BIGINT UNSIGNED null,<{{{><}}}>  created_by BIGINT UNSIGNED not null,<{{{><}}}>  start_at DATETIME not null,<{{{><}}}>  end_at DATETIME not null,<{{{><}}}>  mode_flags JSON not null,<{{{><}}}>  password_hash VARCHAR(255) null,<{{{><}}}>  status ENUM('open', 'closed', 'cancelled') not null default 'open',<{{{><}}}>  created_at DATETIME not null default CURRENT_TIMESTAMP,<{{{><}}}>  updated_at DATETIME not null default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,<{{{><}}}>  foreign KEY (class_section_id) references class_sections (id) on delete CASCADE on update CASCADE,<{{{><}}}>  foreign KEY (schedule_id) references schedules (id) on delete set null on update CASCADE,<{{{><}}}>  foreign KEY (created_by) references users (id) on delete RESTRICT on update CASCADE,<{{{><}}}>  INDEX idx_att_sess_cls (class_section_id),<{{{><}}}>  INDEX idx_att_sess_time (start_at, end_at),<{{{><}}}>  INDEX idx_att_sess_status (status)<{{{><}}}>) ENGINE = InnoDB;
+Servers\Laragon.MySQL\QueryHistory\9<|||>1<|||>2025-10-12 22:05:39|attendence|47|create table qr_tokens (<{{{><}}}>  id BIGINT UNSIGNED AUTO_INCREMENT primary key,<{{{><}}}>  attendance_session_id BIGINT UNSIGNED not null,<{{{><}}}>  token CHAR(64) not null unique,<{{{><}}}>  expires_at DATETIME not null,<{{{><}}}>  created_at DATETIME not null default CURRENT_TIMESTAMP,<{{{><}}}>  foreign KEY (attendance_session_id) references attendance_sessions (id) on delete CASCADE on update CASCADE,<{{{><}}}>  INDEX idx_qr_exp (expires_at)<{{{><}}}>) ENGINE = InnoDB;
+Servers\Laragon.MySQL\QueryHistory\10<|||>1<|||>2025-10-12 22:05:42|attendence|219|create table attendance_records (<{{{><}}}>  id BIGINT UNSIGNED AUTO_INCREMENT primary key,<{{{><}}}>  attendance_session_id BIGINT UNSIGNED not null,<{{{><}}}>  student_id BIGINT UNSIGNED not null,<{{{><}}}>  status ENUM('present', 'late', 'absent') not null,<{{{><}}}>  photo_path VARCHAR(255) null,<{{{><}}}>  gps_lat DECIMAL(10, 7) null,<{{{><}}}>  gps_lng DECIMAL(10, 7) null,<{{{><}}}>  note VARCHAR(255) null,<{{{><}}}>  created_at DATETIME not null default CURRENT_TIMESTAMP,<{{{><}}}>  unique KEY uq_session_student (attendance_session_id, student_id),<{{{><}}}>  foreign KEY (attendance_session_id) references attendance_sessions (id) on delete CASCADE on update CASCADE,<{{{><}}}>  foreign KEY (student_id) references students (id) on delete CASCADE on update CASCADE,<{{{><}}}>  INDEX idx_att_rec_student (student_id),<{{{><}}}>  INDEX idx_att_rec_status (status)<{{{><}}}>) ENGINE = InnoDB;
+Servers\Laragon.MySQL\QueryHistory\11<|||>1<|||>2025-10-12 22:05:45|attendence|31|create table api_tokens (<{{{><}}}>  id BIGINT UNSIGNED AUTO_INCREMENT primary key,<{{{><}}}>  user_id BIGINT UNSIGNED not null,<{{{><}}}>  token CHAR(64) not null unique,<{{{><}}}>  expires_at DATETIME not null,<{{{><}}}>  created_at DATETIME not null default CURRENT_TIMESTAMP,<{{{><}}}>  foreign KEY (user_id) references users (id) on delete CASCADE on update CASCADE,<{{{><}}}>  INDEX idx_token_exp (expires_at)<{{{><}}}>) ENGINE = InnoDB;
+Servers\Laragon.MySQL\QueryHistory\12<|||>1<|||>2025-10-12 22:06:01|attendence|78|create or replace view vw_class_attendance_rate as<{{{><}}}>select<{{{><}}}>  cs.id as class_section_id,<{{{><}}}>  c.code as course_code,<{{{><}}}>  c.name as course_name,<{{{><}}}>  cs.term,<{{{><}}}>  COUNT(distinct ar.attendance_session_id) as total_sessions_with_records,<{{{><}}}>  SUM(ar.status = 'present') as total_present,<{{{><}}}>  SUM(ar.status = 'late') as total_late,<{{{><}}}>  SUM(ar.status = 'absent') as total_absent,<{{{><}}}>  (<{{{><}}}>    SUM(ar.status = 'present') + SUM(ar.status = 'late')<{{{><}}}>  ) / NULLIF(<{{{><}}}>    SUM(ar.status in ('present', 'late', 'absent')),<{{{><}}}>    0<{{{><}}}>  ) as attendance_rate<{{{><}}}>from<{{{><}}}>  class_sections cs<{{{><}}}>  join courses c on c.id = cs.course_id<{{{><}}}>  left join attendance_sessions s on s.class_section_id = cs.id<{{{><}}}>  left join attendance_records ar on ar.attendance_session_id = s.id<{{{><}}}>group by<{{{><}}}>  cs.id;
+Servers\Laragon.MySQL\QueryHistory\13<|||>1<|||>2025-10-12 22:06:05|attendence|31|create or replace view vw_session_detail as<{{{><}}}>select<{{{><}}}>  s.id as session_id,<{{{><}}}>  cs.id as class_section_id,<{{{><}}}>  c.code as course_code,<{{{><}}}>  c.name as course_name,<{{{><}}}>  s.start_at,<{{{><}}}>  s.end_at,<{{{><}}}>  s.status,<{{{><}}}>  st.id as student_id,<{{{><}}}>  u.name as student_name,<{{{><}}}>  ar.status as attendance_status,<{{{><}}}>  ar.photo_path,<{{{><}}}>  ar.gps_lat,<{{{><}}}>  ar.gps_lng,<{{{><}}}>  ar.created_at as checked_at<{{{><}}}>from<{{{><}}}>  attendance_sessions s<{{{><}}}>  join class_sections cs on cs.id = s.class_section_id<{{{><}}}>  join courses c on c.id = cs.course_id<{{{><}}}>  left join attendance_records ar on ar.attendance_session_id = s.id<{{{><}}}>  left join students st on st.id = ar.student_id<{{{><}}}>  left join users u on u.id = st.user_id;
+Servers\Laragon.MySQL\QueryHistory\15<|||>1<|||>2025-10-12 22:12:58|attendence|31|SELECT VERSION();
+Servers\Laragon.MySQL\QueryHistory\14<|||>1<|||>2025-10-12 22:15:30|attendence|31|DROP PROCEDURE sp_teacher_daily_schedule;
+Servers\Laragon.MySQL\QueryHistory\18<|||>1<|||>2025-10-12 22:15:50|attendence|32|insert into teachers (user_id, teacher_code, dept)<{{{><}}}>select id, 'T001', 'CNTT' from users where email = 'teacher.a@example.com'<{{{><}}}>UNION ALL<{{{><}}}>select id, 'T002', 'KT'   from users where email = 'teacher.b@example.com'<{{{><}}}>UNION ALL<{{{><}}}>select id, 'T003', 'H'    from users where email = 'teacher.c@example.com';
+Servers\Laragon.MySQL\QueryHistory\19<|||>1<|||>2025-10-12 22:15:52|attendence|15|insert into students (user_id, student_code, faculty, class_name)<{{{><}}}>select id, 'S001', 'CNTT', 'K66-CNTT1' from users where email = 'student.a@example.com'<{{{><}}}>UNION ALL<{{{><}}}>select id, 'S002', 'CNTT', 'K66-KTPM3' from users where email = 'student.b@example.com'<{{{><}}}>UNION ALL<{{{><}}}>select id, 'S003', 'KT',   'K66-TCNH1' from users where email = 'student.c@example.com';
+Servers\Laragon.MySQL\QueryHistory\20<|||>1<|||>2025-10-12 22:15:55|attendence|31|insert into courses (code, name, credits) values<{{{><}}}>  ('CSE100', 'Nhập môn lập trình', 3),<{{{><}}}>  ('CSE200', 'Xác suất thống kê', 3),<{{{><}}}>  ('CSE300', 'Lịch sử Đảng cộng sản Việt Nam', 2);
+Servers\Laragon.MySQL\QueryHistory\21<|||>1<|||>2025-10-12 22:16:48|attendence|16|insert into class_sections (<{{{><}}}>  course_id,<{{{><}}}>  teacher_id,<{{{><}}}>  term,<{{{><}}}>  room,<{{{><}}}>  capacity,<{{{><}}}>  start_date,<{{{><}}}>  end_date<{{{><}}}>)<{{{><}}}>select<{{{><}}}>  c.id,<{{{><}}}>  t.id,<{{{><}}}>  'Kì 1 - 2025',<{{{><}}}>  'B5-207',<{{{><}}}>  60,<{{{><}}}>  '2025-09-01',<{{{><}}}>  '2025-12-20'<{{{><}}}>from<{{{><}}}>  courses c,<{{{><}}}>  teachers t<{{{><}}}>where<{{{><}}}>  c.code = 'CSE100'<{{{><}}}>  and t.teacher_code = 'T001';
+Servers\Laragon.MySQL\QueryHistory\22<|||>1<|||>2025-10-12 22:16:53|attendence|31|insert into class_sections (<{{{><}}}>  course_id,<{{{><}}}>  teacher_id,<{{{><}}}>  term,<{{{><}}}>  room,<{{{><}}}>  capacity,<{{{><}}}>  start_date,<{{{><}}}>  end_date<{{{><}}}>)<{{{><}}}>select<{{{><}}}>  c.id,<{{{><}}}>  t.id,<{{{><}}}>  'Kì 1 - 2025',<{{{><}}}>  'A4-304',<{{{><}}}>  60,<{{{><}}}>  '2025-09-01',<{{{><}}}>  '2025-12-20'<{{{><}}}>from<{{{><}}}>  courses c,<{{{><}}}>  teachers t<{{{><}}}>where<{{{><}}}>  c.code = 'CSE200'<{{{><}}}>  and t.teacher_code = 'T002';
+Servers\Laragon.MySQL\QueryHistory\23<|||>1<|||>2025-10-12 22:16:56|attendence|16|insert into class_sections (<{{{><}}}>  course_id,<{{{><}}}>  teacher_id,<{{{><}}}>  term,<{{{><}}}>  room,<{{{><}}}>  capacity,<{{{><}}}>  start_date,<{{{><}}}>  end_date<{{{><}}}>)<{{{><}}}>select<{{{><}}}>  c.id,<{{{><}}}>  t.id,<{{{><}}}>  'Kì 2 - 2025',<{{{><}}}>  'B2-313',<{{{><}}}>  60,<{{{><}}}>  '2026-01-10',<{{{><}}}>  '2026-04-02'<{{{><}}}>from<{{{><}}}>  courses c,<{{{><}}}>  teachers t<{{{><}}}>where<{{{><}}}>  c.code = 'CSE300'<{{{><}}}>  and t.teacher_code = 'T003';
+Servers\Laragon.MySQL\QueryHistory\24<|||>1<|||>2025-10-12 22:17:01|attendence|31|insert into schedules (class_section_id, weekday, start_time, end_time, recurring_flag)<{{{><}}}>select<{{{><}}}>  cs.id,<{{{><}}}>  2,<{{{><}}}>  '07:00:00',<{{{><}}}>  '09:35:00',<{{{><}}}>  1<{{{><}}}>from<{{{><}}}>  class_sections cs<{{{><}}}>  join courses c on cs.course_id = c.id<{{{><}}}>where<{{{><}}}>  c.code = 'CSE100';
+Servers\Laragon.MySQL\QueryHistory\25<|||>1<|||>2025-10-12 22:17:04|attendence|31|insert into schedules (class_section_id, weekday, start_time, end_time, recurring_flag)<{{{><}}}>select<{{{><}}}>  cs.id,<{{{><}}}>  2,<{{{><}}}>  '09:40:00',<{{{><}}}>  '12:25:00',<{{{><}}}>  1<{{{><}}}>from<{{{><}}}>  class_sections cs<{{{><}}}>  join courses c on cs.course_id = c.id<{{{><}}}>where<{{{><}}}>  c.code = 'CSE200';
+Servers\Laragon.MySQL\QueryHistory\26<|||>1<|||>2025-10-12 22:17:08|attendence|31|insert into schedules (class_section_id, weekday, start_time, end_time, recurring_flag)<{{{><}}}>select<{{{><}}}>  cs.id,<{{{><}}}>  5,<{{{><}}}>  '12:55:00',<{{{><}}}>  '15:35:00',<{{{><}}}>  1<{{{><}}}>from<{{{><}}}>  class_sections cs<{{{><}}}>  join courses c on cs.course_id = c.id<{{{><}}}>where<{{{><}}}>  c.code = 'CSE300';
+Servers\Laragon.MySQL\QueryHistory\27<|||>1<|||>2025-10-12 22:17:15|attendence|47|insert into class_section_students (class_section_id, student_id)<{{{><}}}>select cs.id, s.id<{{{><}}}>from class_sections cs<{{{><}}}>join courses c on cs.course_id = c.id<{{{><}}}>join students s on 1=1<{{{><}}}>where c.code = 'CSE100' and s.student_code in ('S001')<{{{><}}}>UNION ALL<{{{><}}}>select cs.id, s.id<{{{><}}}>from class_sections cs<{{{><}}}>join courses c on cs.course_id = c.id<{{{><}}}>join students s on 1=1<{{{><}}}>where c.code = 'CSE200' and s.student_code in ('S001', 'S002', 'S003')<{{{><}}}>UNION ALL<{{{><}}}>select cs.id, s.id<{{{><}}}>from class_sections cs<{{{><}}}>join courses c on cs.course_id = c.id<{{{><}}}>join students s on 1=1<{{{><}}}>where c.code = 'CSE300' and s.student_code in ('S002', 'S003');<{{{><}}}><{{{><}}}>-- final message<{{{><}}}>select '✅ Database attendance đã được khởi tạo thành công!' as Result;<{{{><}}}>
+Servers\Laragon.MySQL\QueryHistory\28<|||>1<|||>2025-10-12 22:18:39|attendence|15|select '✅ Database attendance đã được khởi tạo thành công!' as Result;
+Servers\Laragon.MySQL\QueryHistory\29<|||>1<|||>2025-10-19 09:48:26|attendence|31|DELIMITER $$<{{{><}}}><{{{><}}}>CREATE PROCEDURE sp_teacher_daily_schedule(<{{{><}}}>    IN p_teacher_user_id BIGINT,<{{{><}}}>    IN p_date DATE<{{{><}}}>)<{{{><}}}>BEGIN<{{{><}}}>    SELECT sc.id AS class_section_id,<{{{><}}}>           c.code,<{{{><}}}>           c.name,<{{{><}}}>           sc.term,<{{{><}}}>           sch.start_time,<{{{><}}}>           sch.end_time,<{{{><}}}>           sc.room<{{{><}}}>    FROM class_sections sc<{{{><}}}>    JOIN teachers t    ON t.id = sc.teacher_id<{{{><}}}>    JOIN users tu      ON tu.id = t.user_id<{{{><}}}>    JOIN courses c     ON c.id = sc.course_id<{{{><}}}>    JOIN schedules sch ON sch.class_section_id = sc.id<{{{><}}}>    WHERE tu.id = p_teacher_user_id<{{{><}}}>      AND (<{{{><}}}>        (sch.recurring_flag = 0 AND sch.date = p_date)<{{{><}}}>        OR<{{{><}}}>        (sch.recurring_flag = 1 AND sch.weekday = WEEKDAY(p_date))<{{{><}}}>      )<{{{><}}}>    ORDER BY sch.start_time;<{{{><}}}>END$$<{{{><}}}><{{{><}}}>DELIMITER ;
+Servers\Laragon.MySQL\QueryHistory\16<|||>1<|||>2025-10-19 09:48:49|attendence|31|insert into users (name, email, password, role) values<{{{><}}}>  ('Admin', 'admin@example.com', 'admin', 'admin'),<{{{><}}}>  ('GV A', 'teacher.a@example.com', 'teacher', 'teacher'),<{{{><}}}>  ('GV B', 'teacher.b@example.com', 'teacher', 'teacher'),<{{{><}}}>  ('GV C', 'teacher.c@example.com', 'teacher', 'teacher'),<{{{><}}}>  ('SV A', 'student.a@example.com', 'student', 'student'),<{{{><}}}>  ('SV B', 'student.b@example.com', 'student', 'student'),<{{{><}}}>  ('SV C', 'student.c@example.com', 'student', 'student');
+Servers\Laragon.MySQL\QueryHistory\17<|||>1<|||>2025-10-19 10:06:07|attendence|32|SHOW TABLES;
+Servers\Laragon.MySQL\QueryHistory\30<|||>1<|||>2025-10-19 10:06:10|attendence|31|SELECT * FROM migrations;
+Servers\Laragon.MySQL\QueryHistory\31<|||>1<|||>2025-10-19 10:21:25|attendence|31|SELECT * FROM users
+Servers\Laragon.MySQL\QueryHistory\32<|||>1<|||>2025-10-19 14:33:47|attendence|63|CREATE TABLE IF NOT EXISTS face_templates (<{{{><}}}>  id                BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,<{{{><}}}>  student_id        BIGINT UNSIGNED NOT NULL,                 -- FK tới students(id)<{{{><}}}>  provider          VARCHAR(32)    NOT NULL DEFAULT 'regula', -- ví dụ: 'regula' | 'aws' | 'local'<{{{><}}}>  template          LONGBLOB       NOT NULL,                  -- vector/biometric template<{{{><}}}>  version           VARCHAR(50)    NOT NULL,                  -- phiên bản model/SDK (vd: 'regula-2025.10')<{{{><}}}>  quality_score     DECIMAL(6,4)   NULL,                      -- điểm chất lượng ảnh/template (nếu SDK có)<{{{><}}}>  is_primary        TINYINT(1)     NOT NULL DEFAULT 0,        -- template chính cho nhận dạng nhanh<{{{><}}}>  created_at        DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP,<{{{><}}}>  -- Khóa ngoại (giữ an toàn dữ liệu; không đụng bảng cũ)<{{{><}}}>  CONSTRAINT fk_ft_student<{{{><}}}>    FOREIGN KEY (student_id) REFERENCES students(id)<{{{><}}}>    ON DELETE CASCADE ON UPDATE CASCADE,<{{{><}}}>  INDEX idx_ft_student (student_id),<{{{><}}}>  INDEX idx_ft_primary (student_id, is_primary),<{{{><}}}>  INDEX idx_ft_provider (provider)<{{{><}}}>) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+Servers\Laragon.MySQL\QueryHistory\33<|||>1<|||>2025-10-19 14:33:56|attendence|31|CREATE TABLE IF NOT EXISTS face_matches (<{{{><}}}>  id                     BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,<{{{><}}}>  attendance_session_id  BIGINT UNSIGNED NULL,                -- FK tới attendance_sessions(id) nếu bạn muốn gắn theo ca/buổi<{{{><}}}>  student_id             BIGINT UNSIGNED NULL,                -- ai được nhận dạng (có thể null nếu reject)<{{{><}}}>  face_template_id       BIGINT UNSIGNED NULL,                -- template nào khớp (nếu 1:1 hoặc tìm thấy trong 1:N)<{{{><}}}>  method                 ENUM('1:1','1:N') NOT NULL,<{{{><}}}>  similarity             DECIMAL(6,4) NOT NULL,               -- điểm tương đồng (0..1 hoặc theo SDK)<{{{><}}}>  threshold              DECIMAL(6,4) NOT NULL,               -- ngưỡng quyết định tại thời điểm so khớp<{{{><}}}>  decision               ENUM('accept','reject') NOT NULL,    -- chấp nhận / từ chối<{{{><}}}>  liveness_type          ENUM('none','passive','active') NOT NULL DEFAULT 'none',<{{{><}}}>  liveness_score         DECIMAL(6,4) NULL,                   -- nếu SDK trả điểm liveness<{{{><}}}>  spoof_flags            JSON NULL,                           -- cờ phát hiện giả mạo (kính, mask, ảnh màn hình...) nếu có<{{{><}}}>  model_version          VARCHAR(50) NULL,                    -- phiên bản model lúc so khớp<{{{><}}}>  image_path             VARCHAR(255) NULL,                   -- ảnh bằng chứng (nếu có lưu)<{{{><}}}>  created_at             DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,<{{{><}}}>  -- Khóa ngoại (chỉ thêm; không sửa bảng cũ)<{{{><}}}>  CONSTRAINT fk_fm_session<{{{><}}}>    FOREIGN KEY (attendance_session_id) REFERENCES attendance_sessions(id)<{{{><}}}>    ON DELETE CASCADE ON UPDATE CASCADE,<{{{><}}}>  CONSTRAINT fk_fm_student<{{{><}}}>    FOREIGN KEY (student_id) REFERENCES students(id)<{{{><}}}>    ON DELETE SET NULL ON UPDATE CASCADE,<{{{><}}}>  CONSTRAINT fk_fm_template<{{{><}}}>    FOREIGN KEY (face_template_id) REFERENCES face_templates(id)<{{{><}}}>    ON DELETE SET NULL ON UPDATE CASCADE,<{{{><}}}>  INDEX idx_fm_session (attendance_session_id),<{{{><}}}>  INDEX idx_fm_student (student_id),<{{{><}}}>  INDEX idx_fm_decision (decision),<{{{><}}}>  INDEX idx_fm_method (method)<{{{><}}}>) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+Servers\Laragon.MySQL\QueryHistory\34<|||>1<|||>2025-10-19 14:34:01|attendence|63|CREATE TABLE IF NOT EXISTS biometric_consents (<{{{><}}}>  id            BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,<{{{><}}}>  student_id    BIGINT UNSIGNED NOT NULL,<{{{><}}}>  consented_at  DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP,<{{{><}}}>  method        VARCHAR(30)    NOT NULL,      -- 'mobile_app', 'web_portal', ...<{{{><}}}>  ip_address    VARCHAR(45)    NULL,<{{{><}}}>  user_agent    VARCHAR(255)   NULL,<{{{><}}}>  note          VARCHAR(255)   NULL,<{{{><}}}>  CONSTRAINT fk_bc_student<{{{><}}}>    FOREIGN KEY (student_id) REFERENCES students(id)<{{{><}}}>    ON DELETE CASCADE ON UPDATE CASCADE,<{{{><}}}>  UNIQUE KEY uq_bc_student (student_id)       -- 1 bản đồng ý là đủ (bỏ UNIQUE nếu muốn nhiều phiên bản)<{{{><}}}>) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;<{{{><}}}><{{{><}}}>-- 4) View tiện dụng: lấy template chính của mỗi sinh viên<{{{><}}}>CREATE OR REPLACE VIEW v_face_primary_templates AS<{{{><}}}>SELECT<{{{><}}}>  ft.id            AS face_template_id,<{{{><}}}>  ft.student_id,<{{{><}}}>  ft.provider,<{{{><}}}>  ft.version,<{{{><}}}>  ft.quality_score,<{{{><}}}>  ft.created_at<{{{><}}}>FROM face_templates ft<{{{><}}}>WHERE ft.is_primary = 1;
+Servers\Laragon.MySQL\QueryHistory\35<|||>1<|||>2025-10-19 14:34:34|attendence|31|CREATE OR REPLACE VIEW v_face_primary_templates AS<{{{><}}}>SELECT<{{{><}}}>  ft.id            AS face_template_id,<{{{><}}}>  ft.student_id,<{{{><}}}>  ft.provider,<{{{><}}}>  ft.version,<{{{><}}}>  ft.quality_score,<{{{><}}}>  ft.created_at<{{{><}}}>FROM face_templates ft<{{{><}}}>WHERE ft.is_primary = 1;
+Servers\Laragon.MySQL\QueryHistory\37<|||>1<|||>2025-10-19 14:36:00|attendence|31|SELECT * FROM v_face_primary_templates LIMIT 5;
+Servers\Laragon.MySQL\QueryHistory\38<|||>1<|||>2025-10-19 14:36:09|attendence|31|SHOW TABLES LIKE 'face_%';
+Servers\Laragon.MySQL\QueryHistory\36<|||>1<|||>2025-10-23 07:13:00|attendance|203|CREATE TABLE IF NOT EXISTS face_templates_simple (<{{{><}}}>  student_id  BIGINT UNSIGNED PRIMARY KEY,      -- 1 SV = 1 template<{{{><}}}>  template    LONGBLOB      NOT NULL,           -- bytes embedding từ SDK<{{{><}}}>  version     VARCHAR(50)   NOT NULL,           -- ví dụ: 'regula-2025.10'<{{{><}}}>  updated_at  DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP<{{{><}}}>                          ON UPDATE CURRENT_TIMESTAMP,<{{{><}}}>  CONSTRAINT fk_fts_student<{{{><}}}>    FOREIGN KEY (student_id) REFERENCES students(id)<{{{><}}}>    ON DELETE CASCADE ON UPDATE CASCADE<{{{><}}}>) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+Servers\Laragon.MySQL\QueryHistory\39<|||>1<|||>2025-10-31 22:39:45|attendance|47|ALTER TABLE attendance_records<{{{><}}}>  ADD COLUMN method ENUM('face','qr','manual') NULL AFTER student_id,<{{{><}}}>  ADD COLUMN score  DECIMAL(6,4) NULL AFTER method;
+Servers\Local.MySQL\SessionCreated<|||>1<|||>2025-10-13 08:21:10
+Servers\Local.MySQL\Host<|||>1<|||>127.0.0.1
+Servers\Local.MySQL\WindowsAuth<|||>3<|||>0
+Servers\Local.MySQL\CleartextPluginEnabled<|||>3<|||>0
+Servers\Local.MySQL\User<|||>1<|||>root
+Servers\Local.MySQL\Password<|||>1<|||>3
+Servers\Local.MySQL\LoginPrompt<|||>3<|||>0
+Servers\Local.MySQL\Port<|||>1<|||>3306
+Servers\Local.MySQL\NetType<|||>3<|||>0
+Servers\Local.MySQL\Compressed<|||>3<|||>0
+Servers\Local.MySQL\LocalTimeZone<|||>3<|||>0
+Servers\Local.MySQL\QueryTimeout<|||>3<|||>30
+Servers\Local.MySQL\KeepAlive<|||>3<|||>20
+Servers\Local.MySQL\FullTableStatus<|||>3<|||>1
+Servers\Local.MySQL\Databases<|||>1<|||>
+Servers\Local.MySQL\Library<|||>1<|||>libmariadb.dll
+Servers\Local.MySQL\Comment<|||>1<|||>
+Servers\Local.MySQL\StartupScriptFilename<|||>1<|||>
+Servers\Local.MySQL\TreeBackground<|||>3<|||>536870911
+Servers\Local.MySQL\SSHtunnelActive<|||>3<|||>0
+Servers\Local.MySQL\SshExecutable<|||>1<|||>
+Servers\Local.MySQL\SSHtunnelHost<|||>1<|||>
+Servers\Local.MySQL\SSHtunnelHostPort<|||>3<|||>22
+Servers\Local.MySQL\SSHtunnelUser<|||>1<|||>
+Servers\Local.MySQL\SSHtunnelPassword<|||>1<|||>3
+Servers\Local.MySQL\SSHtunnelTimeout<|||>3<|||>4
+Servers\Local.MySQL\SSHtunnelPrivateKey<|||>1<|||>
+Servers\Local.MySQL\SSHtunnelPort<|||>3<|||>3307
+Servers\Local.MySQL\SSL_Active<|||>3<|||>0
+Servers\Local.MySQL\SSL_Key<|||>1<|||>
+Servers\Local.MySQL\SSL_Cert<|||>1<|||>
+Servers\Local.MySQL\SSL_CA<|||>1<|||>
+Servers\Local.MySQL\SSL_Cipher<|||>1<|||>
+Servers\Local.MySQL\SSL_Verification<|||>3<|||>2
+Servers\Local.MySQL\IgnoreDatabasePattern<|||>1<|||>
+Servers\Local.MySQL\LogFileDdl<|||>3<|||>0
+Servers\Local.MySQL\LogFileDml<|||>3<|||>0
+Servers\Local.MySQL\LogFilePath<|||>1<|||>C:\Users\trtie\AppData\Roaming\HeidiSQL\Logs\%session\%db\%y%m%d.sql
+Servers\Local.MySQL\ServerVersionFull<|||>1<|||>8.4.3 - MySQL Community Server - GPL
+Servers\Local.MySQL\ConnectCount<|||>3<|||>2
+Servers\Local.MySQL\ServerVersion<|||>3<|||>80403
+Servers\Local.MySQL\LastConnect<|||>1<|||>2025-10-13 15:08:00
+Servers\Local.MySQL\lastUsedDB<|||>1<|||>product_db
+Servers\Local.MySQL\QueryHistory\1<|||>1<|||>2025-10-13 08:22:25|product_db|0|select '✅ Database attendance đã được khởi tạo thành công!' as Result;
+Servers\Local.MySQL\QueryHistory\2<|||>1<|||>2025-10-13 08:22:46|product_db|0|SELECT * FROM products;

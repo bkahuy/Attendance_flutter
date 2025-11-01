@@ -1013,6 +1013,12 @@ INSERT INTO schedules (class_section_id, weekday, start_time, end_time, recurrin
 (42, 2, '13:00:00', '15:00:00', 0, NULL, NULL),
 (44, 0, '15:00:00', '17:00:00', 0, NULL, NULL),
 (44, 2, '15:00:00', '17:00:00', 0, NULL, NULL),
+
+ALTER TABLE attendance_records
+  ADD COLUMN method ENUM('face','qr','manual') NULL AFTER student_id,
+  ADD COLUMN score  DECIMAL(6,4) NULL AFTER method;
+
+
 (46, 0, '17:00:00', '19:00:00', 0, NULL, NULL),
 (46, 2, '17:00:00', '19:00:00', 0, NULL, NULL),
 (48, 0, '19:00:00', '21:00:00', 0, NULL, NULL),

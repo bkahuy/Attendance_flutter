@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'api/api_client.dart';
 import 'screens/login_page.dart';
-import 'package:intl/date_symbol_data_local.dart';
 import 'services/auth_service.dart';
 
-import 'package:flutter/cupertino.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
+import 'face_recog/enroll_screen.dart';
+import 'face_recog/recognize_screen.dart';
 
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,27 +26,36 @@ class App extends StatelessWidget {
       create: (_) => AuthService(),
       child: MaterialApp(
         title: 'Attendance',
-
-        // 2. 🎨 THÊM 4 THUỘC TÍNH BỊ THIẾU VÀO ĐÂY
-        locale: const Locale('vi', 'VN'), // Đặt ngôn ngữ mặc định
+        locale: const Locale('vi', 'VN'),
         localizationsDelegates: const [
           GlobalMaterialLocalizations.delegate,
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
         ],
         supportedLocales: const [
-          Locale('vi', 'VN'), // Hỗ trợ Tiếng Việt
-          Locale('en', 'US'), // Hỗ trợ Tiếng Anh (nếu cần)
+          Locale('vi', 'VN'),
+          Locale('en', 'US'),
         ],
-        // --- Kết thúc phần thêm ---
-
         theme: ThemeData(
-            colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF111827)),
-            useMaterial3: true),
+          colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF111827)),
+          useMaterial3: true,
+        ),
         debugShowCheckedModeBanner: false,
         home: const LoginPage(),
         routes: {
           '/login': (_) => const LoginPage(),
+          // ↓↓↓ thêm 2 route mới ↓↓↓
+          '/face/recognize': (_) => const RecognizeScreen(),
+        },
+        // với enroll cần truyền studentId động, dùng onGenerateRoute
+        onGenerateRoute: (settings) {
+          if (settings.name == '/face/enroll') {
+            final int studentId = settings.arguments as int;
+            return MaterialPageRoute(
+              builder: (_) => EnrollScreen(studentId: studentId),
+            );
+          }
+          return null;
         },
       ),
     );
