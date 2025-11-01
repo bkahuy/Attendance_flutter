@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart'; // kDebugMode
+import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
+
 import 'api/api_client.dart';
-import 'screens/login_page.dart';
 import 'services/auth_service.dart';
+import 'screens/login_page.dart';
 
 import 'face_recog/enroll_screen.dart';
 import 'face_recog/recognize_screen.dart';
+import 'face_recog/test_gallery.dart';        // <-- THÊM IMPORT NÀY
 
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -16,8 +18,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   if (kDebugMode) {
     developer.log('App start');
-    // chỉ tắt spam log khi DEBUG
-    debugPrint = (String? message, {int? wrapWidth}) {};
+    // debugPrint = (String? message, {int? wrapWidth}) {}; // ĐỪNG tắt log
   }
   await initializeDateFormatting('vi_VN', null);
   await ApiClient().init();
@@ -39,31 +40,25 @@ class App extends StatelessWidget {
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
         ],
-        supportedLocales: const [
-          Locale('vi', 'VN'),
-          Locale('en', 'US'),
-        ],
+        supportedLocales: const [Locale('vi', 'VN'), Locale('en', 'US')],
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(seedColor: Color(0xFF111827)),
           useMaterial3: true,
         ),
         debugShowCheckedModeBanner: false,
-
-        // Màn hình mặc định
         home: const LoginPage(),
 
         // Route KHÔNG tham số
         routes: {
           '/login': (_) => const LoginPage(),
+          '/face/test-gallery': (_) => const TestGalleryScreen(), // <-- OK
         },
 
         // Route CÓ tham số
         onGenerateRoute: (settings) {
           if (settings.name == '/face/enroll') {
             final int studentId = settings.arguments as int;
-            return MaterialPageRoute(
-              builder: (_) => EnrollScreen(studentId: studentId),
-            );
+            return MaterialPageRoute(builder: (_) => EnrollScreen(studentId: studentId));
           }
           if (settings.name == '/face/recognize') {
             final args = settings.arguments as Map<String, dynamic>;

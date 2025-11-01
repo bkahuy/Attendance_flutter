@@ -1,7 +1,8 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
-import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart'; // <-- cho Face
+import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
+import 'package:image_picker/image_picker.dart';
+
 import 'face_service.dart';
 import 'storage.dart';
 import '../services/face_api_service.dart';
@@ -122,6 +123,43 @@ class _RecognizeScreenState extends State<RecognizeScreen> {
     }
   }
 
+  // === NEW: Verify từ ảnh gallery ===
+  Future<void> _pickAndVerify() async {
+    try {
+      setState(() { _msg = null; _busy = true; });
+      final x = await ImagePicker().pickImage(source: ImageSource.gallery);
+      if (x == null) { setState(() => _busy = false); return; }
+
+      final faces = await _svc.detectFacesFromImageFile(x.path);
+      if (faces.isEmpty) {
+        setState(() { _msg = 'Không thấy khuôn mặt trong ảnh'; _busy = false; });
+        return;
+      }
+      final emb = await _svc.embeddingFromFile(x.path, faces.first);
+      if (emb == null) {
+        setState(() { _msg = 'Không tạo được embedding'; _busy = false; });
+        return;
+      }
+
+      final ok = await _api.verifyFace(widget.studentId, emb);
+      if (!mounted) return;
+
+      if (ok) {
+        setState(() { _msg = '✅ Xác thực thành công (ảnh gallery)'; _busy = false; });
+        Navigator.pushNamed(
+          context,
+          '/attendance/manual',
+          arguments: {'sessionId': widget.sessionId},
+        );
+      } else {
+        setState(() { _msg = '❌ Không khớp'; _busy = false; });
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() { _msg = 'Lỗi: $e'; _busy = false; });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_busy) {
@@ -137,9 +175,19 @@ class _RecognizeScreenState extends State<RecognizeScreen> {
               child: CameraPreview(_cam!),
             ),
           const SizedBox(height: 12),
-          ElevatedButton(
-            onPressed: _verifyFace,
-            child: const Text('Chụp & Xác thực'),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              ElevatedButton(
+                onPressed: _verifyFace,
+                child: const Text('Chụp & Xác thực'),
+              ),
+              const SizedBox(width: 12),
+              OutlinedButton(
+                onPressed: _pickAndVerify,
+                child: const Text('Chọn ảnh & Xác thực'),
+              ),
+            ],
           ),
           if (_msg != null)
             Padding(
