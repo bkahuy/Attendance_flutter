@@ -141,8 +141,8 @@ class _TeacherHomeState extends State<TeacherHome> {
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (index) => setState(() => _currentIndex = index),
-        backgroundColor: const Color(0xFF7A6EF3),
-        selectedItemColor: Colors.black,
+        backgroundColor: Colors.deepPurpleAccent,
+        selectedItemColor: Colors.white,
         unselectedItemColor: Colors.black54,
         showSelectedLabels: false,
         showUnselectedLabels: false,
@@ -507,19 +507,3 @@ class ScheduleCard extends StatelessWidget {
     );
   }
 }
-
-// ============================================================================
-// Placeholder cho tab Lịch sử (bạn thay bằng page thật sau)
-// ============================================================================
-// class _HistoryPlaceholder extends StatelessWidget {
-//   const _HistoryPlaceholder();
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     return const Center(
-//       child: Text(
-//         'Chưa có lịch sử',
-//         style: TextStyle(fontSize: 24,
-//     );
-//   }
-// }

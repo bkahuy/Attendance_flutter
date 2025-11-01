@@ -13,47 +13,111 @@ class ShowQrPage extends StatefulWidget {
 
 class _ShowQrPageState extends State<ShowQrPage> {
   late String qrData;
-  int remainingSeconds = 600; // ⏱️ 10 phút mặc định
+  int remainingSeconds = 0;
   Timer? _timer;
+
+  DateTime? _startTime;
+  DateTime? _endTime;
+
+  // ✅ THAY ĐỔI 1: Thêm biến trạng thái
+  String _statusMessage = "Đang tải...";
 
   @override
   void initState() {
     super.initState();
+    print("--- MÀN HÌNH QR INIT ---"); // Lệnh debug
 
-    // ✅ Lấy token hoặc ID từ session
-    qrData = widget.session['token'] != null
-        ? widget.session['token']
-        : "https://103.75.183.227/attendance/session/${widget.session['id']}";
+    // Lấy token hoặc ID từ session
+    qrData = widget.session['token']?.toString() ?? widget.session['id']?.toString() ?? '';
 
-    // ✅ Bắt đầu đếm ngược thời gian nếu có thời gian kết thúc
-    if (widget.session['end_at'] != null && widget.session['start_at'] != null) {
-      final start = DateTime.tryParse(widget.session['start_at']);
-      final end = DateTime.tryParse(widget.session['end_at']);
-      if (start != null && end != null) {
-        final diff = end.difference(DateTime.now()).inSeconds;
-        if (diff > 0) remainingSeconds = diff;
-      }
+
+    // Phân tích thời gian
+    _startTime = DateTime.tryParse(widget.session['start_at'] ?? '');
+    _endTime = DateTime.tryParse(widget.session['end_at'] ?? '');
+
+    // --- DEBUG ---
+    // ✅ Kiểm tra xem dữ liệu thời gian nhận vào có đúng không
+    print("start_at (raw): ${widget.session['start_at']}");
+    print("end_at (raw): ${widget.session['end_at']}");
+    print("Parsed _startTime: $_startTime");
+    print("Parsed _endTime: $_endTime");
+    // --- /DEBUG ---
+
+    // Nếu không có thời gian hợp lệ, dừng lại và báo lỗi
+    if (_startTime == null || _endTime == null) {
+      print("LỖI: Thời gian start/end là null hoặc không hợp lệ. Timer SẼ KHÔNG chạy.");
+      setState(() {
+        _statusMessage = "Lỗi: Thời gian không hợp lệ";
+        remainingSeconds = 0;
+      });
+      return; // Quan trọng: Thoát ra
     }
 
+    print("Thời gian hợp lệ. Đang bắt đầu timer...");
+
+    // Cập nhật thời gian lần đầu tiên
+    _updateRemainingTime();
+
+    // Bắt đầu timer và gọi hàm cập nhật mỗi giây
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (remainingSeconds <= 0) {
-        timer.cancel();
+      _updateRemainingTime();
+    });
+  }
+
+  /// ✅ THAY ĐỔI 2: Cập nhật hàm này để xử lý 3 trạng thái
+  void _updateRemainingTime() {
+    // Nếu không có thời gian, dừng lại
+    if (_startTime == null || _endTime == null) {
+      _timer?.cancel();
+      return;
+    }
+
+    final now = DateTime.now();
+
+    if (now.isBefore(_startTime!)) {
+      // --- TRƯỜNG HỢP 1: Phiên chưa bắt đầu ---
+      final diff = _startTime!.difference(now).inSeconds;
+      setState(() {
+        _statusMessage = "Sắp bắt đầu sau:"; // Thay đổi 1
+        // Hiển thị đếm ngược TỚI LÚC BẮT ĐẦU
+        remainingSeconds = diff > 0 ? diff : 0;
+      });
+
+    } else if (now.isAfter(_endTime!)) {
+      // --- TRƯỜNG HỢP 3: Phiên đã kết thúc ---
+      setState(() {
+        _statusMessage = "Phiên đã kết thúc"; // Thay đổi 2
+        remainingSeconds = 0;
+      });
+      _timer?.cancel();
+
+      // Hiển thị thông báo và đóng trang
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Phiên điểm danh đã kết thúc!')),
         );
         Navigator.pop(context);
-      } else {
-        setState(() => remainingSeconds--);
       }
-    });
+
+    } else {
+      // --- TRƯỜNG HỢP 2: Phiên đang diễn ra (logic đếm ngược) ---
+      final diff = _endTime!.difference(now).inSeconds;
+      setState(() {
+        _statusMessage = "Thời gian còn lại:"; // Thay đổi 3
+        // Hiển thị đếm ngược TỚI LÚC KẾT THÚC
+        remainingSeconds = diff > 0 ? diff : 0;
+      });
+    }
   }
 
   @override
   void dispose() {
+    print("--- MÀN HÌNH QR DISPOSE ---"); // Lệnh debug
     _timer?.cancel();
     super.dispose();
   }
 
+  // Hàm format thời gian (Bạn đã có)
   String formatDuration(int seconds) {
     final minutes = seconds ~/ 60;
     final sec = seconds % 60;
@@ -85,8 +149,9 @@ class _ShowQrPageState extends State<ShowQrPage> {
                     color: Colors.deepPurpleAccent.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
+                  // ✅ THAY ĐỔI 3: Sử dụng _statusMessage và hàm formatDuration
                   child: Text(
-                    "Thời gian còn lại: ${formatDuration(remainingSeconds)}",
+                    "$_statusMessage ${formatDuration(remainingSeconds)}",
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -111,11 +176,9 @@ class _ShowQrPageState extends State<ShowQrPage> {
                   style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 8),
-                Text("Giảng viên: ${session['teacher_name'] ?? '—'}"),
-                const SizedBox(height: 8),
                 Text("Phòng học: ${session['room'] ?? '—'}"),
                 const SizedBox(height: 8),
-                Text("Mã phiên: ${session['id'] ?? '—'}"),
+                Text("Lớp học: ${session['class_name'] ?? '—'}"),
                 const SizedBox(height: 24),
 
                 // ✅ Nút kết thúc phiên thủ công
