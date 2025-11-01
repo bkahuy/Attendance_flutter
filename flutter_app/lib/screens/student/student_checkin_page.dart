@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
 import '../../services/attendance_service.dart';
 
@@ -18,7 +17,6 @@ class _StudentCheckinPageState extends State<StudentCheckinPage> {
   String? status;
   String password = '';
   File? photo;
-  Position? pos;
   bool sending = false;
 
   Future<void> _pickPhoto() async {
@@ -38,19 +36,6 @@ class _StudentCheckinPageState extends State<StudentCheckinPage> {
     photo = widget.photo;
     // Đặt locale để format ngày (ví dụ: "Th 6")
     Intl.defaultLocale = 'vi_VN';
-  }
-
-  Future<void> _getLocation() async {
-    final enabled = await Geolocator.isLocationServiceEnabled();
-    if (!enabled) { await Geolocator.openLocationSettings(); return; }
-    LocationPermission perm = await Geolocator.checkPermission();
-    if (perm == LocationPermission.denied) perm = await Geolocator.requestPermission();
-    if (perm == LocationPermission.deniedForever || perm == LocationPermission.denied) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Không có quyền GPS')));
-      return;
-    }
-    final p = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
-    setState(() => pos = p);
   }
 
   Future<void> _submit() async {
@@ -76,8 +61,6 @@ class _StudentCheckinPageState extends State<StudentCheckinPage> {
         statusValue = 'present';
     }
 
-    await _getLocation();
-
     setState(() => sending = true);
     try {
       // 🎨 SỬA LỖI (từ lần trước):
@@ -94,8 +77,6 @@ class _StudentCheckinPageState extends State<StudentCheckinPage> {
       print("sessionId: $sessionIdAsInt");
       print("status: $statusValue");
       print("password: $password");
-      print("lat: ${pos?.latitude}");
-      print("lng: ${pos?.longitude}");
       print("photoFile exists: ${photo != null}");
       print("====================================");
 
@@ -103,8 +84,6 @@ class _StudentCheckinPageState extends State<StudentCheckinPage> {
         sessionId: sessionIdAsInt,
         status: statusValue,
         password: password.isEmpty ? null : password,
-        lat: pos?.latitude,
-        lng: pos?.longitude,
         photoFile: photo,
       );
 

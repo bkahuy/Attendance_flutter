@@ -1,17 +1,21 @@
 import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
+import 'package:flutter/foundation.dart';                     // ⬅️ thêm
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:tflite_flutter/tflite_flutter.dart';
 import 'package:tflite_flutter_processing/tflite_flutter_processing.dart';
 import 'package:image/image.dart' as img;
 
+import 'preprocess.dart';                                      // ⬅️ thêm
+
 class FaceService {
   final _detector = FaceDetector(
     options: FaceDetectorOptions(
-      enableLandmarks: true,
-      enableContours: false,
-      performanceMode: FaceDetectorMode.accurate,
+      performanceMode: FaceDetectorMode.fast, // nhẹ hơn
+      enableLandmarks: false,                  // tắt
+      enableContours: false,                   // tắt
+      minFaceSize: 0.15,                       // chỉ nhận mặt đủ lớn
     ),
   );
 
@@ -25,17 +29,23 @@ class FaceService {
 
   Future<void> load() async {
     _interpreter = await Interpreter.fromAsset(
-      'models/mobile_face_net.tflite', // pubspec: assets: - assets/models/mobile_face_net.tflite
+      'assets/models/mobile_face_net.tflite', // <-- sửa đúng key như pubspec
       options: InterpreterOptions()..threads = 4,
     );
+
     final input = _interpreter.getInputTensor(0);
     final output = _interpreter.getOutputTensor(0);
+
     _processor = ImageProcessorBuilder()
+    // 112x112 đúng với MobileFaceNet
         .add(ResizeOp(112, 112, ResizeMethod.BILINEAR))
-        .add(NormalizeOp(127.5, 127.5)) // tuỳ model
+    // Chuẩn hoá [-1,1] (tuỳ model; bạn đang dùng mean=127.5/std=127.5 là ok)
+        .add(NormalizeOp(127.5, 127.5))
         .build();
-    _tensorInput = TensorImage(input.type);
+
+    _tensorInput  = TensorImage(input.type);
     _tensorOutput = TensorBuffer.createFixedSize(output.shape, output.type);
+
     _ready = true;
   }
 
@@ -44,31 +54,27 @@ class FaceService {
     return _detector.processImage(input);
   }
 
-  // Đọc file ảnh, crop vùng mặt -> embedding (đã L2 normalize)
+  /// Đọc ảnh -> (isolate) decode/crop/resize -> TensorImage -> run -> L2 norm
   Future<List<double>?> embeddingFromFile(String path, Face face) async {
     final bytes = await File(path).readAsBytes();
-    final base = img.decodeImage(bytes);
-    if (base == null) return null;
 
-    // bounds
+    // Clamp bounding box an toàn
+    final tmp = img.decodeImage(bytes);
+    if (tmp == null) return null;
     final bb = face.boundingBox;
-    final x = bb.left.round().clamp(0, base.width - 1);
-    final y = bb.top.round().clamp(0, base.height - 1);
-    final w = bb.width.round().clamp(1, base.width - x);
-    final h = bb.height.round().clamp(1, base.height - y);
+    final x = bb.left.round().clamp(0, tmp.width  - 1);
+    final y = bb.top .round().clamp(0, tmp.height - 1);
+    final w = bb.width .round().clamp(1, tmp.width  - x);
+    final h = bb.height.round().clamp(1, tmp.height - y);
 
-// ✅ image 4.x: dùng tham số đặt tên
-    final faceCrop = img.copyCrop(
-      base,
-      x: x,
-      y: y,
-      width: w,
-      height: h,
-    );
+    // ✅ chuyển xử lý nặng sang isolate
+    final pre = await compute(preprocessFace, CropArgs(bytes, x, y, w, h));
 
-    // Tiền xử lý -> run model
-    final tImage = TensorImage.fromImage(faceCrop);      // img.Image -> TensorImage
-    final processed = _processor.process(tImage);        // Resize 112x112, Normalize
+    // Load vào TensorImage, sau đó apply ImageProcessor
+    _tensorInput.loadImage(pre);
+    final processed = _processor.process(_tensorInput);
+
+    // Run model
     _interpreter.run(processed.buffer, _tensorOutput.buffer);
 
     final raw = _tensorOutput.getDoubleList();
