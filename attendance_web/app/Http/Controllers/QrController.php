@@ -34,9 +34,25 @@ class QrController extends Controller
             return response()->json(['error' => 'Phiên điểm danh không tồn tại.'], 404);
         }
 
-        // ✅ Kiểm tra trạng thái phiên (chỉ cho phép nếu còn hiệu lực)
-        if (!in_array($session->status, ['scheduled', 'active'])) {
-            return response()->json(['error' => 'Phiên điểm danh đã kết thúc hoặc chưa mở.'], 400);
+        // ✅ Kiểm tra trạng thái/khung thời gian phiên (cho phép nếu
+        // trạng thái là 'scheduled' hoặc 'active' OR hiện tại nằm giữa start_at và end_at)
+        $now = now();
+        $sessionStart = $session->start_at ? \Carbon\Carbon::parse($session->start_at) : null;
+        $sessionEnd = $session->end_at ? \Carbon\Carbon::parse($session->end_at) : null;
+
+        $inTimeWindow = false;
+        if ($sessionStart && $sessionEnd) {
+            $inTimeWindow = $now->between($sessionStart, $sessionEnd);
+        }
+
+        if (!in_array($session->status, ['open','closed','cancelled']) && !$inTimeWindow) {
+            // Trả thêm thông tin để debug (status + thời gian phiên)
+            return response()->json([
+                'error' => 'Phiên điểm danh đã kết thúc hoặc chưa mở.',
+                'session_status' => $session->status,
+                'start_at' => $sessionStart?->toDateTimeString(),
+                'end_at' => $sessionEnd?->toDateTimeString(),
+            ], 400);
         }
 
         // ✅ Trả dữ liệu chi tiết để app sinh viên xử lý check-in

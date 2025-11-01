@@ -29,10 +29,30 @@ class _StudentCheckinLoadingPageState extends State<StudentCheckinLoadingPage> {
 
   Future<void> _resolveAndNavigate() async {
     try {
+      // Debug log the incoming value (may be full deep link or prefixed token)
       print("[DEBUG] Đang gửi token này lên server: ${widget.qrToken}");
-      // 1. Gọi API resolveQr (giống trong QrScanPage của bạn)
-      final sessionData =
-      await AttendanceService().resolveQr(widget.qrToken);
+
+      // Normalize token: if QR payload uses the prefix 'attendance_token_' remove it
+      String tokenToResolve = widget.qrToken;
+      if (tokenToResolve.startsWith('attendance_token_')) {
+        tokenToResolve = tokenToResolve.replaceFirst('attendance_token_', '');
+      }
+
+      // If payload is a full URL like http://.../resolve-qr?token=..., try to extract query param
+      try {
+        final uri = Uri.tryParse(tokenToResolve);
+        if (uri != null && uri.queryParameters['token'] != null) {
+          tokenToResolve = uri.queryParameters['token']!;
+        }
+      } catch (_) {}
+
+      // Validate token is not empty
+      if (tokenToResolve.trim().isEmpty) {
+        throw Exception('Mã QR trống hoặc không hợp lệ');
+      }
+
+      // 1. Gọi API resolveQr với token đã chuẩn hoá
+      final sessionData = await AttendanceService().resolveQr(tokenToResolve);
 
       if (!mounted) return;
 

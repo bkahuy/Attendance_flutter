@@ -160,6 +160,16 @@ class TeacherController extends Controller
                 'expires_at' => now()->addMinutes(15),
             ]);
 
+            // Nếu tạo QR tức là giảng viên muốn mở phiên ngay lập tức,
+            // đặt trạng thái phiên thành 'active' để sinh viên có thể truy cập.
+            try {
+                $session->status = 'active';
+                $session->save();
+            } catch (\Throwable $e) {
+                // Không để lỗi nhỏ phá hỏng flow tạo phiên; log để debug
+                Log::warning('[teacher.createSession] failed to set session active: ' . $e->getMessage());
+            }
+
             $qr = [
                 'token'     => $token,
                 'deep_link' => url("/api/attendance/resolve-qr?token={$token}"),
