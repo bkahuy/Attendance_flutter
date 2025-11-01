@@ -409,9 +409,11 @@ class TeacherController extends Controller
 
             // Lấy các tham số tìm kiếm
             $courseName = $request->query('course_name');
-            $className = $request->query('class_name');
+            $className = $request->query('class_names');
             $room = $request->query('room');
-            $time = $request->query('time');
+            $startTime = $request->query('start_time');
+            $endTime = $request->query('end_time');
+//            $time = $request->query('time');
 
             // Xây dựng câu query với các điều kiện WHERE động
             $params = [$teacherUserId];
@@ -423,15 +425,24 @@ class TeacherController extends Controller
 
             }
 
+            if ($className) {
+                $whereConditions[] = "(cl.name LIKE ?)";
+                $params[] = "%{$className}%";
+            }
+
             if ($room) {
                 $whereConditions[] = "cs.room LIKE ?";
                 $params[] = "%{$room}%";
             }
 
-            if ($time) {
-                $whereConditions[] = "(TIME(ats.start_at) LIKE ? OR TIME(ats.end_at) LIKE ?)";
-                $params[] = "{$time}%";
-                $params[] = "{$time}%";
+//            if ($time) {
+//                $whereConditions[] = "(TIME(ats.start_at) LIKE ?)";
+//                $params[] = "{$time}%";
+//            }
+
+            if ($startTime) {
+                $whereConditions[] = "(s.start_time LIKE ?)";
+                $params[] = "%{$startTime}%";
             }
 
 
@@ -439,11 +450,12 @@ class TeacherController extends Controller
 
             // Query chính để lấy danh sách phiên điểm danh
             $sql = "
-                SELECT
+                SELECT DISTINCT
                     ats.id as session_id,
                     ats.start_at,
                     ats.end_at,
                     ats.created_at,
+                    s.start_time,
                     cs.id as class_section_id,
                     cs.term,
                     cs.room,
@@ -459,11 +471,12 @@ class TeacherController extends Controller
                 JOIN class_sections cs ON cs.id = ats.class_section_id
                 JOIN courses c ON c.id = cs.course_id
                 JOIN teachers t ON t.id = cs.teacher_id
+                JOIN schedules s ON ats.class_section_id = s.class_section_id
                 LEFT JOIN class_section_classes csc ON csc.class_section_id = cs.id
                 LEFT JOIN classes cl ON cl.id = csc.class_id
                 WHERE {$whereClause}
                 GROUP BY ats.id, ats.start_at, ats.end_at, ats.created_at,
-                         cs.id, cs.term, cs.room, c.code, c.name
+                         cs.id, cs.term, cs.room, c.code, c.name, s.start_time
                 ORDER BY ats.created_at DESC
             ";
 
@@ -509,6 +522,7 @@ class TeacherController extends Controller
                     'class_names' => $session->class_names ?? '',
                     'term' => $session->term ?? '',
                     'room' => $session->room ?? '',
+                    'start_time' => $session->start_time,
                     'start_at' => $session->start_at,
                     'end_at' => $session->end_at,
                     'created_at' => $session->created_at,
@@ -531,7 +545,8 @@ class TeacherController extends Controller
                     'course_name' => $courseName,
                     'class_name' => $className,
                     'room' => $room,
-                    'time' => $time,
+                    'start_time' => $startTime,
+//                    'time' => $time,
                 ],
             ]);
 
