@@ -7,7 +7,6 @@ class AttendanceHistory {
   final String endAt;
   final String time;
 
-
   AttendanceHistory({
     required this.id,
     required this.courseName,

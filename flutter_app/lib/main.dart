@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart'; // kDebugMode
 import 'package:provider/provider.dart';
-
 import 'api/api_client.dart';
-import 'services/auth_service.dart';
 import 'screens/login_page.dart';
+import 'services/auth_service.dart';
 
 import 'face_recog/enroll_screen.dart';
 import 'face_recog/recognize_screen.dart';
@@ -41,43 +40,27 @@ class App extends StatelessWidget {
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
         ],
-        supportedLocales: const [Locale('vi', 'VN'), Locale('en', 'US')],
+        supportedLocales: const [
+          Locale('vi', 'VN'),
+          Locale('en', 'US'),
+        ],
         theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Color(0xFF111827)),
+          colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF111827)),
           useMaterial3: true,
         ),
         debugShowCheckedModeBanner: false,
-
-        // Màn hình mặc định
         home: const LoginPage(),
-
-        // Route KHÔNG tham số
         routes: {
           '/login': (_) => const LoginPage(),
+          // ↓↓↓ thêm 2 route mới ↓↓↓
+          '/face/recognize': (_) => const RecognizeScreen(),
         },
-
-        // Route CÓ tham số
+        // với enroll cần truyền studentId động, dùng onGenerateRoute
         onGenerateRoute: (settings) {
           if (settings.name == '/face/enroll') {
             final int studentId = settings.arguments as int;
-            return MaterialPageRoute(builder: (_) => EnrollScreen(studentId: studentId));
-          }
-          if (settings.name == '/face/recognize') {
-            final args = settings.arguments as Map<String, dynamic>;
             return MaterialPageRoute(
-              builder: (_) => RecognizeScreen(
-                studentId: args['studentId'] as int,
-                sessionId: args['sessionId'] as int,
-              ),
-            );
-          }
-          if (settings.name == '/face/recognize') {
-            final args = settings.arguments as Map<String, dynamic>;
-            return MaterialPageRoute(
-              builder: (_) => RecognizeScreen(
-                studentId: args['studentId'] as int,
-                sessionId: args['sessionId'] as int,
-              ),
+              builder: (_) => EnrollScreen(studentId: studentId),
             );
           }
           return null;

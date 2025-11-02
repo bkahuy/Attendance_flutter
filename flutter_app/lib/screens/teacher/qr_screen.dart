@@ -1,10 +1,14 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import '../../../utils/config.dart';
+import 'package:dio/dio.dart';
+
+import '../../api/api_client.dart';
+import '../../utils/config.dart';
 
 class ShowQrPage extends StatefulWidget {
   final Map<String, dynamic> session;
-
   const ShowQrPage({super.key, required this.session});
 
   @override
@@ -19,8 +23,68 @@ class _ShowQrPageState extends State<ShowQrPage> {
   DateTime? _startTime;
   DateTime? _endTime;
 
-  // ✅ THAY ĐỔI 1: Thêm biến trạng thái
   String _statusMessage = "Đang tải...";
+  bool _isClosing = false;
+
+  final dio = ApiClient().dio;
+
+  Future<void> _closeSession() async {
+      if (_isClosing) return;
+      final sessionId = widget.session['id']?.toString();
+      if (sessionId == null || sessionId.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Không có ID phiên để đóng')),
+          );
+        }
+        return;
+      }
+
+      setState(() => _isClosing = true);
+      _timer?.cancel();
+
+      try {
+        // Sử dụng PUT để cập nhật status (backend của bạn dùng PUT)
+        final response = await dio.put(
+          "${AppConfig.teacherCloseSession}/$sessionId/close",
+          options: Options(headers: {'Accept': 'application/json'}),
+        );
+
+        final code = response.statusCode ?? 0;
+        if (code == 200 || code == 204) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Đã kết thúc phiên trên server')),
+            );
+            Navigator.pop(context);
+          }
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Không thể đóng phiên (code: $code)')),
+            );
+          }
+          print('Close session failed: $code ${response.data}');
+        }
+      } on DioError catch (e) {
+        if (mounted) {
+          final msg = e.response != null
+              ? 'Lỗi server: ${e.response?.statusCode}'
+              : 'Lỗi mạng: ${e.message}';
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+        }
+        print('DioError closing session: $e');
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lỗi: $e')));
+        }
+        print('Exception closing session: $e');
+      } finally {
+        if (mounted) setState(() => _isClosing = false);
+      }
+    }
+
+
 
   @override
   void initState() {
@@ -201,17 +265,20 @@ class _ShowQrPageState extends State<ShowQrPage> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  onPressed: () {
-                    _timer?.cancel();
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Phiên điểm danh đã kết thúc')),
-                    );
-                  },
-                  label: const Text(
-                    "Kết thúc phiên điểm danh",
-                    style: TextStyle(fontSize: 16, color: Colors.white),
-                  ),
+                  onPressed: _isClosing
+                      ? null
+                      : () async {
+                          await _closeSession();
+                        },
+                  label: _isClosing
+                      ? const Text(
+                          "Đang kết thúc...",
+                          style: TextStyle(fontSize: 16, color: Colors.white),
+                        )
+                      : const Text(
+                          "Kết thúc phiên điểm danh",
+                          style: TextStyle(fontSize: 16, color: Colors.white),
+                        ),
                 ),
               ],
             ),

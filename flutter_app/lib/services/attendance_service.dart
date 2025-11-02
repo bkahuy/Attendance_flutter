@@ -12,8 +12,6 @@ class AttendanceService {
   // ===================== QR RESOLVE =====================
   Future<Map<String, dynamic>> resolveQr(String token) async {
     try {
-      // Debug: log token being requested
-      // (use print so it appears in debug console)
       print('[resolveQr] token -> $token');
 
       final res = await _dio.get(
@@ -23,12 +21,10 @@ class AttendanceService {
       );
       return Map<String, dynamic>.from(res.data);
     } on DioException catch (e) {
-      // If server returned a JSON body with an error message, prefer it
       final responseData = e.response?.data;
       final statusCode = e.response?.statusCode;
       print('[resolveQr] DioException status: $statusCode, body: $responseData');
       if (responseData is Map) {
-        // Laravel validation errors usually come under 'errors' or 'message'
         if (responseData['errors'] != null) {
           try {
             final errors = responseData['errors'] as Map<String, dynamic>;
@@ -44,38 +40,43 @@ class AttendanceService {
         if (responseData['error'] != null) {
           throw Exception('Server: ${responseData['error']} (status $statusCode)');
         }
-        // If it's a map but none of the above keys matched, stringify it
         throw Exception('Server response: ${responseData.toString()} (status $statusCode)');
       }
-      // Fallback to original message
       throw Exception('DioException [status $statusCode]: ${e.message}');
     }
   }
 
-  // ===================== CHECK-IN =====================
   Future<void> checkIn({
     required int sessionId,
     required String status,
+    required String templateBase64, // 👈 Đổi từ File sang String
     String? password,
     double? lat,
     double? lng,
-    File? photoFile,
   }) async {
-    final form = FormData.fromMap({
-      'session_id': sessionId,
-      'status': status,
-      if (password != null && password.isNotEmpty) 'password': password,
-      if (lat != null) 'gps_lat': lat,
-      if (lng != null) 'gps_lng': lng,
-      if (photoFile != null)
-        'photo': await MultipartFile.fromFile(photoFile.path, filename: 'checkin.jpg'),
-    });
-
-    await _dio.post(
-      AppConfig.studentCheckinPath,
-      data: form,
-      options: Options(headers: {'Accept': 'application/json'}),
-    );
+    try {
+      // 1. 🎨 Gửi JSON (thay vì FormData)
+      await _dio.post(
+        AppConfig.studentCheckinPath, // 👈 Đảm bảo bạn có AppConfig.studentCheckinPath
+        data: {
+          'attendance_session_id': sessionId,
+          'status': status,
+          'template_base64': templateBase64, // 👈 Gửi template
+          'password': password,
+          'gps_lat': lat,
+          'gps_lng': lng,
+        },
+      );
+    } on DioException catch (e) {
+      // 2. 🎨 Xử lý lỗi validation (422) tốt hơn
+      final responseData = e.response?.data;
+      if (responseData is Map && responseData['error'] != null) {
+        throw Exception(responseData['error']);
+      }
+      throw Exception('Lỗi điểm danh: ${e.response?.statusCode ?? e.message}');
+    } catch (e) {
+      throw Exception('Lỗi điểm danh: $e');
+    }
   }
 
   // ===================== CREATE SESSION (TEACHER) =====================
@@ -108,51 +109,18 @@ class AttendanceService {
     return Map<String, dynamic>.from(res.data);
   }
 
-  // ===================== QR CHECK-IN HANDLER =====================
-  /// Xử lý khi sinh viên quét mã QR
-  /// [qrData] là chuỗi đọc từ mã QR, có thể chứa token hoặc sessionId
-  Future<String> handleQrCheckIn(String qrData) async {
-    try {
-      // Nếu QR chứa token, resolve token -> sessionId
-      if (qrData.startsWith("attendance_token_")) {
-        final token = qrData.replaceFirst("attendance_token_", "");
-        final resolved = await resolveQr(token);
-        final sessionId = resolved['session_id'];
-        await checkIn(sessionId: sessionId, status: "present");
-        return "✅ Điểm danh thành công!";
-      }
-
-      // Nếu QR chứa sessionId trực tiếp
-      else if (qrData.startsWith("attendance_session_")) {
-        final sessionId = int.tryParse(qrData.replaceFirst("attendance_session_", ""));
-        if (sessionId == null) return "Mã QR không hợp lệ!";
-        await checkIn(sessionId: sessionId, status: "present");
-        return "✅ Điểm danh thành công!";
-      }
-
-      // QR không đúng định dạng
-      else {
-        return "❌ Mã QR không hợp lệ!";
-      }
-    } catch (e) {
-      return "❌ Lỗi khi điểm danh: $e";
-    }
-  }
+  // 🎨 ĐÃ XÓA HÀM 'handleQrCheckIn'
+  // (Vì logic này đã cũ, không bao gồm quét mặt)
 
 
   // ===================== GET HISTORY (TEACHER) =====================
-  /// Lấy lịch sử các phiên điểm danh của giảng viên (cho Frame 19)
   Future<List<AttendanceHistory>> getAttendanceHistory({
-    String? courseName, // Tên môn
-    String? className,  // Tên lớp
-    String? room,   // Phòng
-    String? startTime,       // Giờ
+    String? courseName,
+    String? className,
+    String? room,
+    String? startTime,
   }) async {
-
-    // === THÊM LOGIC TẠO THAM SỐ ===
-    // Tạo một Map để chứa các tham số truy vấn
     final Map<String, dynamic> queryParameters = {};
-
     if (courseName != null && courseName.isNotEmpty) {
       queryParameters['course_name'] = courseName;
     }
@@ -172,20 +140,13 @@ class AttendanceService {
       options: Options(headers: {'Accept': 'application/json'}),
     );
     log('--- API RESPONSE ---: ${res.data.toString()}');
-    // (Phần còn lại của hàm giữ nguyên)
     if (res.data is Map<String, dynamic>) {
       final Map<String, dynamic> responseData = res.data;
-
-      // 4. Lấy giá trị của key 'results' (dựa trên log của bạn)
       final dynamic data = responseData['results'];
-
-      // 5. Kiểm tra xem 'results' có phải là List không
       if (data is List) {
-        // Thành công!
         return data.map((item) => AttendanceHistory.fromJson(item as Map<String, dynamic>)).toList();
       } else {
-        // 'results' là null hoặc không phải List (ví dụ: tìm không thấy)
-        return []; // Trả về danh sách rỗng
+        return [];
       }
     }
     if (res.data is List) {
@@ -196,14 +157,11 @@ class AttendanceService {
   }
 
   // ===================== GET SESSION DETAIL (TEACHER) =====================
-  /// Lấy chi tiết một phiên điểm danh (cho Frame 20)
   Future<SessionDetail> getSessionDetail(String classSectionId) async {
     final res = await _dio.get(
       "${AppConfig.attendanceHistoryDetail}/$classSectionId/detail",
       options: Options(headers: {'Accept': 'application/json'}),
     );
-
-    // Dio tự động parse JSON, res.data ở đây là một Map<String, dynamic>
     return SessionDetail.fromJson(res.data);
   }
 }

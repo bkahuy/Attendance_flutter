@@ -249,6 +249,7 @@ FROM
 -- ========================================
 -- STORED PROCEDURE
 -- ========================================
+DROP PROCEDURE IF EXISTS sp_teacher_daily_schedule;
 DELIMITER $$
 CREATE PROCEDURE sp_teacher_daily_schedule(
     IN p_teacher_user_id BIGINT,
@@ -269,9 +270,12 @@ BEGIN
     JOIN schedules sch ON sch.class_section_id = sc.id
     WHERE tu.id = p_teacher_user_id
       AND (
-        (sch.recurring_flag = 0 AND sch.date = p_date)
-        OR
-        (sch.recurring_flag = 1 AND sch.weekday = WEEKDAY(p_date))
+          (sch.recurring_flag = 1 AND sch.weekday = WEEKDAY(p_date))
+          OR (sch.recurring_flag = 0 AND sch.date = p_date)
+      )
+      AND (
+          p_date BETWEEN COALESCE(sc.start_date, p_date)
+                     AND COALESCE(sc.end_date, p_date)
       )
     ORDER BY sch.start_time;
 END$$
@@ -310,11 +314,6 @@ END$$
 
 DELIMITER ;
 
-CALL sp_student_daily_schedule(10)
-
-UPDATE schedules
-SET recurring_flag = 1
-WHERE recurring_flag = 0;
 
 -- View lịch dạy của giảng viên (mới)
 CREATE OR REPLACE VIEW vw_teacher_schedule AS
@@ -341,6 +340,7 @@ CREATE OR REPLACE VIEW vw_student_schedule AS
 SELECT
     s.id AS student_id,
     u.name AS student_name,
+    cs.id AS class_section_id,
     c.code AS course_code,
     c.name AS course_name,
     cs.term,
@@ -911,108 +911,123 @@ INSERT INTO class_section_students (class_section_id, student_id) VALUES
 (47, 116), (47, 117), (47, 118), (47, 119), (47, 120),
 (48, 116), (48, 117), (48, 118), (48, 119), (48, 120);
 
--- Insert into schedules (96 bản ghi: 48 lớp học phần, mỗi lớp 2 buổi/tuần)
+
+
+
 INSERT INTO schedules (class_section_id, weekday, start_time, end_time, recurring_flag, location_lat, location_lng) VALUES
--- Giảng viên 2 (Nguyễn Văn Hùng): 6 lớp học phần (1, 3, 5, 7, 9, 11)
-(1, 0, '08:00:00', '10:00:00', 0, NULL, NULL), -- Thứ Hai
-(1, 2, '08:00:00', '10:00:00', 0, NULL, NULL), -- Thứ Tư
-(3, 0, '10:00:00', '12:00:00', 0, NULL, NULL),
-(3, 2, '10:00:00', '12:00:00', 0, NULL, NULL),
-(5, 0, '13:00:00', '15:00:00', 0, NULL, NULL),
-(5, 2, '13:00:00', '15:00:00', 0, NULL, NULL),
-(7, 0, '15:00:00', '17:00:00', 0, NULL, NULL),
-(7, 2, '15:00:00', '17:00:00', 0, NULL, NULL),
-(9, 0, '17:00:00', '19:00:00', 0, NULL, NULL),
-(9, 2, '17:00:00', '19:00:00', 0, NULL, NULL),
-(11, 0, '19:00:00', '21:00:00', 0, NULL, NULL),
-(11, 2, '19:00:00', '21:00:00', 0, NULL, NULL),
--- Giảng viên 3 (Trần Thị Lan): 6 lớp học phần (2, 4, 6, 8, 10, 12)
-(2, 0, '08:00:00', '10:00:00', 0, NULL, NULL),
-(2, 2, '08:00:00', '10:00:00', 0, NULL, NULL),
-(4, 0, '10:00:00', '12:00:00', 0, NULL, NULL),
-(4, 2, '10:00:00', '12:00:00', 0, NULL, NULL),
-(6, 0, '13:00:00', '15:00:00', 0, NULL, NULL),
-(6, 2, '13:00:00', '15:00:00', 0, NULL, NULL),
-(8, 0, '15:00:00', '17:00:00', 0, NULL, NULL),
-(8, 2, '15:00:00', '17:00:00', 0, NULL, NULL),
-(10, 0, '17:00:00', '19:00:00', 0, NULL, NULL),
-(10, 2, '17:00:00', '19:00:00', 0, NULL, NULL),
-(12, 0, '19:00:00', '21:00:00', 0, NULL, NULL),
-(12, 2, '19:00:00', '21:00:00', 0, NULL, NULL),
--- Giảng viên 4 (Lê Văn Minh): 6 lớp học phần (13, 15, 17, 19, 21, 23)
-(13, 0, '08:00:00', '10:00:00', 0, NULL, NULL),
-(13, 2, '08:00:00', '10:00:00', 0, NULL, NULL),
-(15, 0, '10:00:00', '12:00:00', 0, NULL, NULL),
-(15, 2, '10:00:00', '12:00:00', 0, NULL, NULL),
-(17, 0, '13:00:00', '15:00:00', 0, NULL, NULL),
-(17, 2, '13:00:00', '15:00:00', 0, NULL, NULL),
-(19, 0, '15:00:00', '17:00:00', 0, NULL, NULL),
-(19, 2, '15:00:00', '17:00:00', 0, NULL, NULL),
-(21, 0, '17:00:00', '19:00:00', 0, NULL, NULL),
-(21, 2, '17:00:00', '19:00:00', 0, NULL, NULL),
-(23, 0, '19:00:00', '21:00:00', 0, NULL, NULL),
-(23, 2, '19:00:00', '21:00:00', 0, NULL, NULL),
--- Giảng viên 5 (Phạm Thị Hồng): 6 lớp học phần (14, 16, 18, 20, 22, 24)
-(14, 0, '08:00:00', '10:00:00', 0, NULL, NULL),
-(14, 2, '08:00:00', '10:00:00', 0, NULL, NULL),
-(16, 0, '10:00:00', '12:00:00', 0, NULL, NULL),
-(16, 2, '10:00:00', '12:00:00', 0, NULL, NULL),
-(18, 0, '13:00:00', '15:00:00', 0, NULL, NULL),
-(18, 2, '13:00:00', '15:00:00', 0, NULL, NULL),
-(20, 0, '15:00:00', '17:00:00', 0, NULL, NULL),
-(20, 2, '15:00:00', '17:00:00', 0, NULL, NULL),
-(22, 0, '17:00:00', '19:00:00', 0, NULL, NULL),
-(22, 2, '17:00:00', '19:00:00', 0, NULL, NULL),
-(24, 0, '19:00:00', '21:00:00', 0, NULL, NULL),
-(24, 2, '19:00:00', '21:00:00', 0, NULL, NULL),
--- Giảng viên 6 (Hoàng Văn Nam): 6 lớp học phần (25, 27, 29, 31, 33, 35)
-(25, 0, '08:00:00', '10:00:00', 0, NULL, NULL),
-(25, 2, '08:00:00', '10:00:00', 0, NULL, NULL),
-(27, 0, '10:00:00', '12:00:00', 0, NULL, NULL),
-(27, 2, '10:00:00', '12:00:00', 0, NULL, NULL),
-(29, 0, '13:00:00', '15:00:00', 0, NULL, NULL),
-(29, 2, '13:00:00', '15:00:00', 0, NULL, NULL),
-(31, 0, '15:00:00', '17:00:00', 0, NULL, NULL),
-(31, 2, '15:00:00', '17:00:00', 0, NULL, NULL),
-(33, 0, '17:00:00', '19:00:00', 0, NULL, NULL),
-(33, 2, '17:00:00', '19:00:00', 0, NULL, NULL),
-(35, 0, '19:00:00', '21:00:00', 0, NULL, NULL),
-(35, 2, '19:00:00', '21:00:00', 0, NULL, NULL),
--- Giảng viên 7 (Vũ Thị Mai): 6 lớp học phần (26, 28, 30, 32, 34, 36)
-(26, 0, '08:00:00', '10:00:00', 0, NULL, NULL),
-(26, 2, '08:00:00', '10:00:00', 0, NULL, NULL),
-(28, 0, '10:00:00', '12:00:00', 0, NULL, NULL),
-(28, 2, '10:00:00', '12:00:00', 0, NULL, NULL),
-(30, 0, '13:00:00', '15:00:00', 0, NULL, NULL),
-(30, 2, '13:00:00', '15:00:00', 0, NULL, NULL),
-(32, 0, '15:00:00', '17:00:00', 0, NULL, NULL),
-(32, 2, '15:00:00', '17:00:00', 0, NULL, NULL),
-(34, 0, '17:00:00', '19:00:00', 0, NULL, NULL),
-(34, 2, '17:00:00', '19:00:00', 0, NULL, NULL),
-(36, 0, '19:00:00', '21:00:00', 0, NULL, NULL),
-(36, 2, '19:00:00', '21:00:00', 0, NULL, NULL),
--- Giảng viên 8 (Đặng Văn Long): 6 lớp học phần (37, 39, 41, 43, 45, 47)
-(37, 0, '08:00:00', '10:00:00', 0, NULL, NULL),
-(37, 2, '08:00:00', '10:00:00', 0, NULL, NULL),
-(39, 0, '10:00:00', '12:00:00', 0, NULL, NULL),
-(39, 2, '10:00:00', '12:00:00', 0, NULL, NULL),
-(41, 0, '13:00:00', '15:00:00', 0, NULL, NULL),
-(41, 2, '13:00:00', '15:00:00', 0, NULL, NULL),
-(43, 0, '15:00:00', '17:00:00', 0, NULL, NULL),
-(43, 2, '15:00:00', '17:00:00', 0, NULL, NULL),
-(45, 0, '17:00:00', '19:00:00', 0, NULL, NULL),
-(45, 2, '17:00:00', '19:00:00', 0, NULL, NULL),
-(47, 0, '19:00:00', '21:00:00', 0, NULL, NULL),
-(47, 2, '19:00:00', '21:00:00', 0, NULL, NULL),
--- Giảng viên 9 (Ngô Thị Thanh): 6 lớp học phần (38, 40, 42, 44, 46, 48)
-(38, 0, '08:00:00', '10:00:00', 0, NULL, NULL),
-(38, 2, '08:00:00', '10:00:00', 0, NULL, NULL),
-(40, 0, '10:00:00', '12:00:00', 0, NULL, NULL),
-(40, 2, '10:00:00', '12:00:00', 0, NULL, NULL),
-(42, 0, '13:00:00', '15:00:00', 0, NULL, NULL),
-(42, 2, '13:00:00', '15:00:00', 0, NULL, NULL),
-(44, 0, '15:00:00', '17:00:00', 0, NULL, NULL),
-(44, 2, '15:00:00', '17:00:00', 0, NULL, NULL),
+-- Giảng viên 2 (Dạy 1, 3, 5, 7, 9, 11) & Giảng viên 3 (Dạy 2, 4, 6, 8, 10, 12)
+-- SV Lớp 1 (Học Section 1 & 2)
+(1, 0, '08:00:00', '10:00:00', 1, NULL, NULL), -- T2 Ca 1
+(1, 2, '08:00:00', '10:00:00', 1, NULL, NULL), -- T4 Ca 1
+(2, 0, '10:00:00', '12:00:00', 1, NULL, NULL), -- T2 Ca 2
+(2, 2, '10:00:00', '12:00:00', 1, NULL, NULL), -- T4 Ca 2
+-- SV Lớp 2 (Học Section 3 & 4)
+(3, 0, '10:00:00', '12:00:00', 1, NULL, NULL), -- T2 Ca 2
+(3, 2, '10:00:00', '12:00:00', 1, NULL, NULL), -- T4 Ca 2
+(4, 0, '08:00:00', '10:00:00', 1, NULL, NULL), -- T2 Ca 1
+(4, 2, '08:00:00', '10:00:00', 1, NULL, NULL), -- T4 Ca 1
+-- SV Lớp 3 (Học Section 5 & 6)
+(5, 0, '13:00:00', '15:00:00', 1, NULL, NULL), -- T2 Ca 3
+(5, 2, '13:00:00', '15:00:00', 1, NULL, NULL), -- T4 Ca 3
+(6, 0, '15:00:00', '17:00:00', 1, NULL, NULL), -- T2 Ca 4
+(6, 2, '15:00:00', '17:00:00', 1, NULL, NULL), -- T4 Ca 4
+-- SV Lớp 4 (Học Section 7 & 8)
+(7, 0, '15:00:00', '17:00:00', 1, NULL, NULL), -- T2 Ca 4
+(7, 2, '15:00:00', '17:00:00', 1, NULL, NULL), -- T4 Ca 4
+(8, 0, '13:00:00', '15:00:00', 1, NULL, NULL), -- T2 Ca 3
+(8, 2, '13:00:00', '15:00:00', 1, NULL, NULL), -- T4 Ca 3
+-- SV Lớp 5 (Học Section 9 & 10)
+(9, 0, '17:00:00', '19:00:00', 1, NULL, NULL), -- T2 Ca 5
+(9, 2, '17:00:00', '19:00:00', 1, NULL, NULL), -- T4 Ca 5
+(10, 0, '19:00:00', '21:00:00', 1, NULL, NULL), -- T2 Ca 6
+(10, 2, '19:00:00', '21:00:00', 1, NULL, NULL), -- T4 Ca 6
+-- SV Lớp 6 (Học Section 11 & 12)
+(11, 0, '19:00:00', '21:00:00', 1, NULL, NULL), -- T2 Ca 6
+(11, 2, '19:00:00', '21:00:00', 1, NULL, NULL), -- T4 Ca 6
+(12, 0, '17:00:00', '19:00:00', 1, NULL, NULL), -- T2 Ca 5
+(12, 2, '17:00:00', '19:00:00', 1, NULL, NULL), -- T4 Ca 5
+
+-- Giảng viên 4 (Dạy 13, 15, 17, 19, 21, 23) & Giảng viên 5 (Dạy 14, 16, 18, 20, 22, 24)
+-- Logic tương tự, đảo (Ca 1, Ca 2), (Ca 2, Ca 1), ...
+(13, 0, '08:00:00', '10:00:00', 1, NULL, NULL),
+(13, 2, '08:00:00', '10:00:00', 1, NULL, NULL),
+(14, 0, '10:00:00', '12:00:00', 1, NULL, NULL),
+(14, 2, '10:00:00', '12:00:00', 1, NULL, NULL),
+(15, 0, '10:00:00', '12:00:00', 1, NULL, NULL),
+(15, 2, '10:00:00', '12:00:00', 1, NULL, NULL),
+(16, 0, '08:00:00', '10:00:00', 1, NULL, NULL),
+(16, 2, '08:00:00', '10:00:00', 1, NULL, NULL),
+(17, 0, '13:00:00', '15:00:00', 1, NULL, NULL),
+(17, 2, '13:00:00', '15:00:00', 1, NULL, NULL),
+(18, 0, '15:00:00', '17:00:00', 1, NULL, NULL),
+(18, 2, '15:00:00', '17:00:00', 1, NULL, NULL),
+(19, 0, '15:00:00', '17:00:00', 1, NULL, NULL),
+(19, 2, '15:00:00', '17:00:00', 1, NULL, NULL),
+(20, 0, '13:00:00', '15:00:00', 1, NULL, NULL),
+(20, 2, '13:00:00', '15:00:00', 1, NULL, NULL),
+(21, 0, '17:00:00', '19:00:00', 1, NULL, NULL),
+(21, 2, '17:00:00', '19:00:00', 1, NULL, NULL),
+(22, 0, '19:00:00', '21:00:00', 1, NULL, NULL),
+(22, 2, '19:00:00', '21:00:00', 1, NULL, NULL),
+(23, 0, '19:00:00', '21:00:00', 1, NULL, NULL),
+(23, 2, '19:00:00', '21:00:00', 1, NULL, NULL),
+(24, 0, '17:00:00', '19:00:00', 1, NULL, NULL),
+(24, 2, '17:00:00', '19:00:00', 1, NULL, NULL),
+
+-- Giảng viên 6 (Dạy 25, 27, 29, 31, 33, 35) & Giảng viên 7 (Dạy 26, 28, 30, 32, 34, 36)
+(25, 0, '08:00:00', '10:00:00', 1, NULL, NULL),
+(25, 2, '08:00:00', '10:00:00', 1, NULL, NULL),
+(26, 0, '10:00:00', '12:00:00', 1, NULL, NULL),
+(26, 2, '10:00:00', '12:00:00', 1, NULL, NULL),
+(27, 0, '10:00:00', '12:00:00', 1, NULL, NULL),
+(27, 2, '10:00:00', '12:00:00', 1, NULL, NULL),
+(28, 0, '08:00:00', '10:00:00', 1, NULL, NULL),
+(28, 2, '08:00:00', '10:00:00', 1, NULL, NULL),
+(29, 0, '13:00:00', '15:00:00', 1, NULL, NULL),
+(29, 2, '13:00:00', '15:00:00', 1, NULL, NULL),
+(30, 0, '15:00:00', '17:00:00', 1, NULL, NULL),
+(30, 2, '15:00:00', '17:00:00', 1, NULL, NULL),
+(31, 0, '15:00:00', '17:00:00', 1, NULL, NULL),
+(31, 2, '15:00:00', '17:00:00', 1, NULL, NULL),
+(32, 0, '13:00:00', '15:00:00', 1, NULL, NULL),
+(32, 2, '13:00:00', '15:00:00', 1, NULL, NULL),
+(33, 0, '17:00:00', '19:00:00', 1, NULL, NULL),
+(33, 2, '17:00:00', '19:00:00', 1, NULL, NULL),
+(34, 0, '19:00:00', '21:00:00', 1, NULL, NULL),
+(34, 2, '19:00:00', '21:00:00', 1, NULL, NULL),
+(35, 0, '19:00:00', '21:00:00', 1, NULL, NULL),
+(35, 2, '19:00:00', '21:00:00', 1, NULL, NULL),
+(36, 0, '17:00:00', '19:00:00', 1, NULL, NULL),
+(36, 2, '17:00:00', '19:00:00', 1, NULL, NULL),
+
+-- Giảng viên 8 (Dạy 37, 39, 41, 43, 45, 47) & Giảng viên 9 (Dạy 38, 40, 42, 44, 46, 48)
+(37, 0, '08:00:00', '10:00:00', 1, NULL, NULL),
+(37, 2, '08:00:00', '10:00:00', 1, NULL, NULL),
+(38, 0, '10:00:00', '12:00:00', 1, NULL, NULL),
+(38, 2, '10:00:00', '12:00:00', 1, NULL, NULL),
+(39, 0, '10:00:00', '12:00:00', 1, NULL, NULL),
+(39, 2, '10:00:00', '12:00:00', 1, NULL, NULL),
+(40, 0, '08:00:00', '10:00:00', 1, NULL, NULL),
+(40, 2, '08:00:00', '10:00:00', 1, NULL, NULL),
+(41, 0, '13:00:00', '15:00:00', 1, NULL, NULL),
+(41, 2, '13:00:00', '15:00:00', 1, NULL, NULL),
+(42, 0, '15:00:00', '17:00:00', 1, NULL, NULL),
+(42, 2, '15:00:00', '17:00:00', 1, NULL, NULL),
+(43, 0, '15:00:00', '17:00:00', 1, NULL, NULL),
+(43, 2, '15:00:00', '17:00:00', 1, NULL, NULL),
+(44, 0, '13:00:00', '15:00:00', 1, NULL, NULL),
+(44, 2, '13:00:00', '15:00:00', 1, NULL, NULL),
+(45, 0, '17:00:00', '19:00:00', 1, NULL, NULL),
+(45, 2, '17:00:00', '19:00:00', 1, NULL, NULL),
+(46, 0, '19:00:00', '21:00:00', 1, NULL, NULL),
+(46, 2, '19:00:00', '21:00:00', 1, NULL, NULL),
+(47, 0, '19:00:00', '21:00:00', 1, NULL, NULL),
+(47, 2, '19:00:00', '21:00:00', 1, NULL, NULL),
+(48, 0, '17:00:00', '19:00:00', 1, NULL, NULL),
+(48, 2, '17:00:00', '19:00:00', 1, NULL, NULL);
+
+
+
 
 ALTER TABLE attendance_records
   ADD COLUMN method ENUM('face','qr','manual') NULL AFTER student_id,
@@ -1031,7 +1046,64 @@ CREATE TABLE face_templates_simple (
 ALTER TABLE students ADD COLUMN face_enrolled TINYINT(1) DEFAULT 0;
 
 
-(46, 0, '17:00:00', '19:00:00', 0, NULL, NULL),
-(46, 2, '17:00:00', '19:00:00', 0, NULL, NULL),
-(48, 0, '19:00:00', '21:00:00', 0, NULL, NULL),
-(48, 2, '19:00:00', '21:00:00', 0, NULL, NULL);
+
+
+
+SELECT sc.id AS class_section_id,
+                       c.code AS course_code,
+                       c.name AS course_name,
+                       sc.term,
+                       sc.room,
+                       sch.start_time,
+                       sch.end_time,
+                       GROUP_CONCAT(cl.name SEPARATOR ', ') AS class_names
+                FROM class_sections sc
+                JOIN teachers t     ON t.id = sc.teacher_id
+                JOIN users tu       ON tu.id = t.user_id
+                JOIN courses c      ON c.id = sc.course_id
+                JOIN schedules sch  ON sch.class_section_id = sc.id
+                LEFT JOIN class_section_classes csc ON csc.class_section_id = sc.id
+                LEFT JOIN classes cl ON cl.id = csc.class_id
+                WHERE tu.id = 2
+                  AND (
+                    (sch.recurring_flag = 0 AND sch.date = '2025-11-03')
+                    OR
+                    (sch.recurring_flag = 1 AND sch.weekday = WEEKDAY('2025-11-03'))
+                  )
+                GROUP BY sc.id, c.code, c.name, sc.term, sc.room, sch.start_time, sch.end_time
+                ORDER BY sch.start_time
+
+
+
+
+
+
+SELECT
+ats.id as session_id,
+ats.start_at,
+ats.end_at,
+s.start_time,
+s.end_time,
+ats.created_at,
+cs.id as class_section_id,
+cs.term,
+cs.room,
+c.code as course_code,
+c.name as course_name,
+GROUP_CONCAT(DISTINCT cl.name SEPARATOR ', ') as class_names,
+CASE
+   WHEN NOW() BETWEEN ats.start_at AND ats.end_at THEN 'active'
+   WHEN NOW() > ats.end_at THEN 'ended'
+   ELSE 'upcoming'
+END AS STATUS
+FROM attendance_sessions ats
+JOIN class_sections cs ON cs.id = ats.class_section_id
+JOIN courses c ON c.id = cs.course_id
+JOIN teachers t ON t.id = cs.teacher_id
+JOIN schedules s ON s.class_section_id = ats.class_section_id
+LEFT JOIN class_section_classes csc ON csc.class_section_id = cs.id
+LEFT JOIN classes cl ON cl.id = csc.class_id
+WHERE c.name LIKE 'Lập trình Java'
+GROUP BY ats.id, ats.start_at, ats.end_at, ats.created_at,
+    cs.id, cs.term, cs.room, c.code, c.name, s.start_time
+ORDER BY ats.created_at DESC

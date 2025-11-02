@@ -177,7 +177,6 @@ class _StudentHomeState extends State<StudentHome> {
     final String? qrToken = await Navigator.push<String>(
       context,
       MaterialPageRoute(
-        // 🎨 SỬA LỖI: Bỏ Scaffold wrapper
         // Trang QrScanPage giờ đã tự có AppBar màu tím
         builder: (_) => const QrScanPage(returnData: true),
       ),
@@ -232,7 +231,7 @@ class _StudentHomeState extends State<StudentHome> {
           currentIndex: _visualTabIndex,
           backgroundColor: Colors.transparent,
           elevation: 0,
-          selectedItemColor: Colors.black,
+          selectedItemColor: Colors.white,
           unselectedItemColor: Colors.black54,
           type: BottomNavigationBarType.fixed,
 

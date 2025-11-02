@@ -138,7 +138,6 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
   }
 
   /// 🔹 CẬP NHẬT: Widget hiển thị trạng thái
-  //   (Giờ đây nhận 'session' thay vì 'status')
   Widget _buildStatusWidget(Map<String, dynamic> session, DateTime date) {
     final now = DateTime.now();
     final isToday = DateUtils.isSameDay(date, now);

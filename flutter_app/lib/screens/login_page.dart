@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../api/auth_repository.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../models/user.dart';
 import '../api/auth_repository.dart';    // repo login trả (AppUser, String token)
 import 'teacher/teacher_home.dart';
 import 'student/student_home.dart';
+import './student/face_registration_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -13,81 +18,83 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  final _emailCtrl = TextEditingController();
-  final _passCtrl  = TextEditingController();
-  bool _loading = false;
-  String? _error;
+  final email = TextEditingController();
+  final pass  = TextEditingController();
+  bool loading = false;
+  String? err;
 
   @override
   void dispose() {
-    _emailCtrl.dispose();
-    _passCtrl.dispose();
+    email.dispose();
+    pass.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
-    setState(() { _loading = true; _error = null; });
-
+    setState(() { loading = true; err = null; });
     try {
-      final auth = context.read<AuthService>();
-
-      // ✅ login -> (user, token)
-      final (AppUser user, String token) = await auth.login(
-        email: _emailCtrl.text.trim(),
-        password: _passCtrl.text,
+      // 🎨 CẬP NHẬT: Nhận 3 giá trị
+      final (AppUser user, String token, bool requiresFaceRegistration) = await AuthRepository().login(
+        email.text.trim(),
+        pass.text,
       );
 
-
-
-      // // ✅ Điều hướng theo role
-      // switch (user.role) {
-      //   case 'teacher':
-      //     Navigator.of(context).pushReplacement(
-      //       MaterialPageRoute(builder: (_) => TeacherHome(user: user)),
-      //     );
-      //     break;
-      //   case 'student':
-      //     Navigator.of(context).pushReplacement(
-      //       MaterialPageRoute(builder: (_) => StudentHome(user: user)),
-      //     );
-      //     break;
-      //   default:
-      //     ScaffoldMessenger.of(context).showSnackBar(
-      //       SnackBar(content: Text('Không xác định được vai trò: ${user.role}')),
-      //     );
-      // }
-
-
+      // ✅ Lưu SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('token', token);
+      await prefs.setString('role', user.role);
+      await prefs.setInt('id', user.id);
+      await prefs.setString('email', user.email);
+      await prefs.setString('user_name', user.name);
 
       if (!mounted) return;
 
-      // ✅ Điều hướng: student -> màn face (recognize), teacher -> sau này về trang GV
-      if (user.role == 'student') {
-        // TODO: nếu bạn muốn ép đăng ký lần đầu: Navigator.pushNamed(context, '/face/enroll', arguments: user.id);
-        Navigator.pushNamed(context, '/face/enroll', arguments: user.id);
-      } else if (user.role == 'teacher') {
-        // TODO: thay bằng route màn chủ GV khi có
-        ScaffoldMessenger.of(context).showSnackBar(
-            await Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (_) => TeacherHome(user: user)),
-        )
-      );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Đăng nhập thành công (role: ${user.role})')),
-        );
+      // ✅ Điều hướng theo role
+      switch (user.role) {
+        case 'teacher':
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => TeacherHome(user: user)),
+          );
+          break;
+
+      // 🎨 CẬP NHẬT: Thêm logic điều hướng cho sinh viên
+        case 'student':
+          if (requiresFaceRegistration) {
+            // 2a. NẾU CẦN ĐĂNG KÝ -> Đi đến trang đăng ký
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (_) => FaceRegistrationPage(user: user)),
+            );
+          } else {
+            // 2b. NẾU ĐÃ ĐĂNG KÝ -> Đi đến trang home
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (_) => StudentHome(user: user)),
+            );
+          }
+          break;
+
+        default:
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Không xác định được vai trò: ${user.role}')),
+          );
       }
+    } on DioException catch (e) {
+      setState(() {
+        err = e.response?.data is Map && (e.response?.data['error'] != null)
+            ? e.response?.data['error'].toString()
+            : 'Lỗi đăng nhập (${e.response?.statusCode ?? e.type.name})';
+      });
     } catch (e) {
-      setState(() => _error = 'Sai email/mật khẩu hoặc server lỗi.\n$e');
+      setState(() { err = 'Có lỗi xảy ra: $e'; });
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) setState(() { loading = false; });
     }
   }
 
   @override
   Widget build(BuildContext ctx) {
+    // (Phần UI Build... không thay đổi)
     return Scaffold(
-      backgroundColor: const Color(0xFF9A8CF6), // tím theo UI cũ của bạn
+      backgroundColor: const Color(0xFF9A8CF6),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -98,21 +105,15 @@ class _LoginPageState extends State<LoginPage> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Logo như cũ (đảm bảo có file assets/logo_TLU.png trong pubspec)
                     Image.asset('assets/logo_TLU.png', width: 250),
                     const SizedBox(height: 24),
-
-                    if (_error != null)
+                    if (err != null)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 12),
-                        child: Text(_error!, textAlign: TextAlign.center,
-                            style: const TextStyle(color: Colors.red)),
+                        child: Text(err!, style: const TextStyle(color: Colors.red)),
                       ),
-
-                    // Email
                     TextField(
-                      controller: _emailCtrl,
-                      keyboardType: TextInputType.emailAddress,
+                      controller: email,
                       decoration: InputDecoration(
                         hintText: 'email',
                         filled: true,
@@ -123,12 +124,11 @@ class _LoginPageState extends State<LoginPage> {
                           borderSide: BorderSide.none,
                         ),
                       ),
+                      keyboardType: TextInputType.emailAddress,
                     ),
                     const SizedBox(height: 16),
-
-                    // Password
                     TextField(
-                      controller: _passCtrl,
+                      controller: pass,
                       obscureText: true,
                       decoration: InputDecoration(
                         hintText: 'mật khẩu',
@@ -142,8 +142,6 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                     ),
                     const SizedBox(height: 20),
-
-                    // Button
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
@@ -156,8 +154,8 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                           elevation: 4,
                         ),
-                        onPressed: _loading ? null : _submit,
-                        child: _loading
+                        onPressed: loading ? null : _submit,
+                        child: loading
                             ? const SizedBox(
                           height: 20, width: 20,
                           child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),

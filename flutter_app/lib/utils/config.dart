@@ -5,6 +5,7 @@ class AppConfig {
   static const String profilePath = '/api/auth/profile';
   static const String changePasswordPath = '/api/auth/change-password';
   static const String teacherSchedulePath = '/api/teacher/schedule';
+  static const String teacherCloseSession  = '/api/attendance/session';
   static const String teacherCreateSessionPath = '/api/attendance/session';
   static const String attendanceHistory = '/api/attendance/session/search';
   static const String attendanceHistoryDetail = '/api/attendance/session';
@@ -12,4 +13,5 @@ class AppConfig {
   static const String studentResolveQrPath = '/api/attendance/resolve-qr';
   static const String studentCheckinPath = '/api/attendance/checkin';
   static const String studentHistoryPath = '/api/student/class-sections';
+  static const String faceRegistrationPath = '/api/student/register-face';
 }
