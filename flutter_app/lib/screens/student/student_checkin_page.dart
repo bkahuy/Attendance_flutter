@@ -1,12 +1,14 @@
 import 'dart:io';
+import 'dart:convert'; // 🎨 1. Thêm import để dùng Base64
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
 import '../../services/attendance_service.dart';
 
 class StudentCheckinPage extends StatefulWidget {
   final Map<String, dynamic> session;
-  final File photo;
+  final File photo; // 👈 Tấm ảnh này là TỪ BƯỚC TRƯỚC (FaceScanPage)
   const StudentCheckinPage({super.key, required this.session,required this.photo,});
 
   @override
@@ -16,28 +18,53 @@ class StudentCheckinPage extends StatefulWidget {
 class _StudentCheckinPageState extends State<StudentCheckinPage> {
   String? status;
   String password = '';
-  File? photo;
+  Position? pos;
   bool sending = false;
 
-  Future<void> _pickPhoto() async {
-    final picker = ImagePicker();
-    final img = await picker.pickImage(source: ImageSource.camera, maxWidth: 1280, imageQuality: 85,preferredCameraDevice: CameraDevice.front,);
-    if (img != null) {
-      setState(() {
-        photo = File(img.path);
-      });
-    }
-  }
+  // 🎨 2. Sửa State
+  File? _previewPhoto; // Ảnh để xem
+  String? _templateBase64; // Template để gửi đi
+
+  // (Hàm _pickPhoto đã bị xóa vì không cần nữa)
 
   @override
   void initState() {
     super.initState();
-    // Gán ảnh đã chụp
-    photo = widget.photo;
-    // Đặt locale để format ngày (ví dụ: "Th 6")
+    // 🎨 3. Dùng ảnh đã chụp ở bước trước
+    _setInitialPhoto(widget.photo);
     Intl.defaultLocale = 'vi_VN';
   }
 
+  // 🎨 4. Hàm mới: Chuyển File ảnh (từ FaceScanPage) sang Base64
+  Future<void> _setInitialPhoto(File photoFile) async {
+    // ‼️ TODO: TẠM THỜI (DÙNG CHO TEST)
+    // Chúng ta đang gửi Base64 của ảnh thô.
+    // BẠN NÊN thay thế logic này bằng SDK (như Regula)
+    // để tạo "template" AI thực sự.
+    final bytes = await photoFile.readAsBytes();
+    final String base64String = base64Encode(bytes);
+
+    setState(() {
+      _previewPhoto = photoFile; // Lưu ảnh để xem
+      _templateBase64 = base64String; // Lưu template để gửi
+    });
+  }
+
+  Future<void> _getLocation() async {
+    // (Hàm này giữ nguyên)
+    final enabled = await Geolocator.isLocationServiceEnabled();
+    if (!enabled) { await Geolocator.openLocationSettings(); return; }
+    LocationPermission perm = await Geolocator.checkPermission();
+    if (perm == LocationPermission.denied) perm = await Geolocator.requestPermission();
+    if (perm == LocationPermission.deniedForever || perm == LocationPermission.denied) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Không có quyền GPS')));
+      return;
+    }
+    final p = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+    setState(() => pos = p);
+  }
+
+  // 🎨 5. SỬA HÀM SUBMIT
   Future<void> _submit() async {
     if (status == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -46,45 +73,40 @@ class _StudentCheckinPageState extends State<StudentCheckinPage> {
       return;
     }
 
+    // 5a. Kiểm tra template
+    if (_templateBase64 == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Không tìm thấy ảnh. Vui lòng thử lại.')),
+      );
+      return;
+    }
+
     String statusValue;
     switch (status) {
-      case 'Có mặt':
-        statusValue = 'present';
-        break;
-      case 'Muộn':
-        statusValue = 'late';
-        break;
-      case 'Vắng':
-        statusValue = 'absent';
-        break;
-      default:
-        statusValue = 'present';
+      case 'Có mặt': statusValue = 'present'; break;
+      case 'Muộn': statusValue = 'late'; break;
+      case 'Vắng': statusValue = 'absent'; break;
+      default: statusValue = 'present';
     }
+
+    await _getLocation();
 
     setState(() => sending = true);
     try {
-      // 🎨 SỬA LỖI (từ lần trước):
-      // Đảm bảo 'session_id' được kiểm tra null và parse an toàn
       final dynamic sessionId = widget.session['session_id'];
       if (sessionId == null) {
         throw Exception("Không tìm thấy ID buổi học (session_id is null).");
       }
       final int sessionIdAsInt = int.parse(sessionId.toString());
 
-      // 🎨 GHI CHÚ DEBUG (từ lần trước):
-      // Thêm print để kiểm tra lỗi 422
-      print("===== DỮ LIỆU GỬI ĐI (checkIn): =====");
-      print("sessionId: $sessionIdAsInt");
-      print("status: $statusValue");
-      print("password: $password");
-      print("photoFile exists: ${photo != null}");
-      print("====================================");
-
+      // 5b. Gọi hàm checkIn đã sửa (trong AttendanceService)
       await AttendanceService().checkIn(
         sessionId: sessionIdAsInt,
         status: statusValue,
+        templateBase64: _templateBase64!, // 👈 Gửi template
         password: password.isEmpty ? null : password,
-        photoFile: photo,
+        lat: pos?.latitude,
+        lng: pos?.longitude,
       );
 
       if (!mounted) return;
@@ -92,8 +114,11 @@ class _StudentCheckinPageState extends State<StudentCheckinPage> {
         const SnackBar(content: Text('Điểm danh thành công!')),
       );
 
-      // Quay về trang trước đó
-      Navigator.of(context).pop();
+      // 5c. Pop 2 lần để quay về trang Home/CourseDetail
+      // (Đóng trang Checkin và trang Loading)
+      int popCount = 0;
+      Navigator.of(context).popUntil((_) => popCount++ >= 2);
+
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -104,28 +129,17 @@ class _StudentCheckinPageState extends State<StudentCheckinPage> {
     }
   }
 
-
-  // 🎨 CẬP NHẬT: Dùng Row thay vì ListTile để có giao diện gọn (giống ảnh)
+  // (Widget _buildRadioOption giữ nguyên)
   Widget _buildRadioOption(String title) {
     return GestureDetector(
-      onTap: () {
-        setState(() {
-          status = title;
-        });
-      },
-      // Bọc trong Row để radio và text sát nhau
+      onTap: () { setState(() { status = title; }); },
       child: Row(
-        mainAxisSize: MainAxisSize.min, // Giữ cho Row co lại
+        mainAxisSize: MainAxisSize.min,
         children: [
           Radio<String>(
             value: title,
             groupValue: status,
-            onChanged: (String? value) {
-              setState(() {
-                status = value;
-              });
-            },
-            // Giảm padding mặc định của Radio
+            onChanged: (String? value) { setState(() { status = value; }); },
             visualDensity: VisualDensity.compact,
             materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
@@ -140,39 +154,30 @@ class _StudentCheckinPageState extends State<StudentCheckinPage> {
     final s = widget.session;
     final className = s['class_name'] ?? 'Lớp';
     final courseName = s['course_name'] ?? 'Tên môn học';
-    // final courseCode = s['course_code'] ?? 'Mã môn'; // 🎨 BỎ (không có trong ảnh)
 
-    // 🎨 CẬP NHẬT: Dùng tryParse để an toàn hơn
     final sessionDate = DateTime.tryParse(s['date'] ?? '') ?? DateTime.now();
-
-    // 🎨 CẬP NHẬT: Format "Thứ... dd/MM/yyyy"
-    // (Ảnh dùng "Fri" là tiếng Anh, ta dùng "vi_VN" sẽ ra "T6" hoặc "Thứ 6")
     final formattedDate = DateFormat("E dd/MM/yyyy", "vi_VN").format(sessionDate);
-    final photoName = photo == null ? '' : photo!.path.split('/').last;
+
+    // 🎨 6. Sửa Build
+    // Lấy tên file từ _previewPhoto
+    final photoName = _previewPhoto == null ? '' : _previewPhoto!.path.split('/').last;
 
     return Scaffold(
-      // 🎨 CẬP NHẬT: AppBar
       appBar: AppBar(
-        leading: const BackButton(color: Colors.white), // Icon back màu trắng
+        leading: const BackButton(color: Colors.white),
         title: const Text(
-          'Máy ảnh', // Đổi tiêu đề
-          style: TextStyle(color: Colors.white), // Chữ màu trắng
+          'Máy ảnh',
+          style: TextStyle(color: Colors.white),
         ),
-        backgroundColor: Colors.indigo.shade400, // Nền màu tím
-        elevation: 1, // Thêm bóng mờ
+        backgroundColor: Colors.indigo.shade400,
+        elevation: 1,
       ),
-
-      // 🎨 CẬP NHẬT: Nền
       backgroundColor: Colors.white,
-
-      // 🔹 Nội dung chính
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
-
-        // 🎨 CẬP NHẬT: Card
         child: Container(
           decoration: BoxDecoration(
-            color: Colors.grey[100], // Màu xám rất nhạt
+            color: Colors.grey[100],
             borderRadius: BorderRadius.circular(15),
             boxShadow: [
               BoxShadow(
@@ -187,33 +192,28 @@ class _StudentCheckinPageState extends State<StudentCheckinPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 🎨 CẬP NHẬT: Thứ tự (Lớp -> Tên môn)
                 Text(
                   'Lớp $className',
                   style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  courseName, // 🎨 Bỏ courseCode
+                  courseName,
                   style: TextStyle(fontSize: 16, color: Colors.grey[800]),
                 ),
                 const SizedBox(height: 16),
-
-                // 🎨 CẬP NHẬT: Hàng ngày tháng và tên ảnh
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    // Ngày tháng
                     Text(
                       formattedDate,
                       style: TextStyle(fontSize: 16, color: Colors.grey[800]),
                     ),
                     const SizedBox(width: 16),
-                    // Tên ảnh (Bỏ IconButton)
                     Flexible(
                       child: Text(
-                        photoName,
+                        photoName, // 👈 Dùng photoName
                         style:
                         TextStyle(fontSize: 14, color: Colors.grey[800]),
                         overflow: TextOverflow.ellipsis,
@@ -224,7 +224,6 @@ class _StudentCheckinPageState extends State<StudentCheckinPage> {
                 ),
                 const SizedBox(height: 8),
 
-                // 🎨 CẬP NHẬT: Dùng widget _buildRadioOption đã sửa
                 _buildRadioOption('Có mặt'),
                 _buildRadioOption('Muộn'),
                 _buildRadioOption('Vắng'),
@@ -250,11 +249,10 @@ class _StudentCheckinPageState extends State<StudentCheckinPage> {
                 ),
                 const SizedBox(height: 24),
 
-                // 🎨 CẬP NHẬT: Căn lề nút "XÁC NHẬN" sang phải
                 Align(
                   alignment: Alignment.centerRight,
                   child: ElevatedButton(
-                    onPressed: sending ? null : _submit,
+                    onPressed: sending ? null : _submit, // 👈 Gọi hàm _submit đã sửa
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
                       foregroundColor: Colors.black,

@@ -21,6 +21,7 @@ class _HistoryPageState extends State<HistoryPage> {
   final _courseNameController = TextEditingController();
   final _classNameController = TextEditingController();
   final _locationController = TextEditingController();
+  final _timeController = TextEditingController();
   final _starttimeController = TextEditingController();
 
   // 2. Trạng thái tải và danh sách kết quả

@@ -24,6 +24,7 @@ Route::middleware('auth:api')->group(function () {
 Route::middleware(['auth:api','role:teacher'])->group(function(){
     Route::get('teacher/schedule',[TeacherController::class,'schedule']);
     Route::post('attendance/session',[TeacherController::class,'createSession']);
+    Route::put('attendance/session/{id}/close',[TeacherController::class,'closeSession']);
     Route::get('attendance/session/search',[TeacherController::class,'searchAttendanceHistory']);
     Route::get('attendance/session/{id}/detail',[TeacherController::class,'getAttendanceRecords']);
     Route::get('stats/class/{id}',[StatsController::class,'classStats']);
@@ -41,9 +42,11 @@ Route::middleware(['auth:api','role:student'])->group(function(){
 
 //Nhan dien khuon mat
 Route::middleware(['auth:api','role:student'])->group(function () {
+    // 🎨 BƯỚC 2: Sửa 'face/enroll' thành 'student/register-face'
+    Route::post('student/register-face', [FaceController::class, 'enroll']);
     Route::post('face/enroll', [\App\Http\Controllers\FaceController::class, 'enroll']);
 });
 Route::middleware(['auth:api'])->group(function () {
+    Route::post('face/match',  [FaceController::class, 'logMatch']);
     Route::post('face/match',  [\App\Http\Controllers\FaceController::class, 'logMatch']);
 });
-

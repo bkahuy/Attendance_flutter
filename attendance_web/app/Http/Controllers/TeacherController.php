@@ -184,6 +184,73 @@ class TeacherController extends Controller
     }
 
 
+    public function closeSession($id)
+    {
+        try {
+            // Kiểm tra quyền giảng viên
+            $teacherUserId = auth('api')->id();
+            if (!$teacherUserId) {
+                return response()->json(['error' => 'UNAUTHENTICATED'], 401);
+            }
+
+            // Lấy thông tin session và kiểm tra quyền
+            $session = AttendanceSession::find($id);
+
+            if (!$session) {
+                return response()->json(['error' => 'SESSION_NOT_FOUND'], 404);
+            }
+
+            // Kiểm tra session này có thuộc về giảng viên đang đăng nhập không
+            $checkPermission = DB::selectOne("
+                SELECT cs.id
+                FROM class_sections cs
+                JOIN teachers t ON t.id = cs.teacher_id
+                JOIN attendance_sessions ats ON ats.class_section_id = cs.id
+                WHERE ats.id = ? AND t.user_id = ?
+            ", [$id, $teacherUserId]);
+
+            if (!$checkPermission) {
+                return response()->json(['error' => 'NO_PERMISSION'], 403);
+            }
+
+            // Cập nhật status thành closed
+            $session->status = 'closed';
+            $session->save();
+
+            // Lấy thống kê nhanh
+            $stats = DB::selectOne("
+                SELECT
+                    COUNT(ar.id) as total_records,
+                    SUM(CASE WHEN ar.status = 'present' THEN 1 ELSE 0 END) as present_count,
+                    SUM(CASE WHEN ar.status = 'late' THEN 1 ELSE 0 END) as late_count
+                FROM attendance_records ar
+                WHERE ar.attendance_session_id = ?
+            ", [$id]);
+
+            return response()->json([
+                'message' => 'Đã đóng phiên điểm danh thành công.',
+                'session' => [
+                    'id' => (int) $session->id,
+                    'status' => $session->status,
+                    'start_at' => $session->start_at,
+                    'end_at' => $session->end_at,
+                ],
+                'stats' => [
+                    'total_records' => (int) ($stats->total_records ?? 0),
+                    'present_count' => (int) ($stats->present_count ?? 0),
+                    'late_count' => (int) ($stats->late_count ?? 0),
+                ]
+            ]);
+
+        } catch (\Throwable $e) {
+            Log::error('[teacher.closeSession] ' . $e->getMessage(), [
+                'session_id' => $id
+            ]);
+            return response()->json(['error' => 'SERVER_ERROR', 'hint' => $e->getMessage()], 500);
+        }
+    }
+
+
     /**
      * GET /api/attendance/session/{id}
      */
@@ -471,7 +538,7 @@ class TeacherController extends Controller
                 JOIN class_sections cs ON cs.id = ats.class_section_id
                 JOIN courses c ON c.id = cs.course_id
                 JOIN teachers t ON t.id = cs.teacher_id
-                JOIN schedules s ON ats.class_section_id = s.class_section_id
+                JOIN schedules s ON s.class_section_id = ats.class_section_id
                 LEFT JOIN class_section_classes csc ON csc.class_section_id = cs.id
                 LEFT JOIN classes cl ON cl.id = csc.class_id
                 WHERE {$whereClause}
