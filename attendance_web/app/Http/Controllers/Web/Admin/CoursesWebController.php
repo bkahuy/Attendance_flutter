@@ -1,50 +1,61 @@
 <?php
+
 namespace App\Http\Controllers\Web\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Course;
+use App\Models\{Course, Department};
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class CoursesWebController extends Controller
 {
-    public function index()
+    public function index(Request $r)
     {
-        $courses = Course::orderBy('code')->paginate(20);
+        $q = Course::with('department')->orderBy('code');
+        if ($s = $r->get('search')) {
+            $q->where('code','like',"%$s%")->orWhere('name','like',"%$s%");
+        }
+        $courses = $q->paginate(15)->withQueryString();
         return view('admin.courses.index', compact('courses'));
     }
 
-    public function create(){ return view('admin.courses.create'); }
+    public function create() {
+        $departments = Department::orderBy('name')->get();
+        return view('admin.courses.create', compact('departments'));
+    }
 
     public function store(Request $r)
     {
-        Course::create($r->validate([
-            'code'=>'required|unique:courses',
-            'name'=>'required',
-            'credits'=>'required|integer|min:1'
-        ]));
-        return redirect()->route('courses.index')->with('ok','Đã tạo môn học');
+        $data = $r->validate([
+            'code'=>['required','max:20','unique:courses,code'],
+            'name'=>['required','max:150'],
+            'credits'=>['required','integer','min:1','max:10'],
+            'department_id'=>['nullable','exists:departments,id'],
+        ]);
+        Course::create($data);
+        return redirect()->route('admin.courses.index')->with('ok','Đã thêm môn học');
     }
 
-    public function edit($id)
-    {
-        $course = Course::findOrFail($id);
-        return view('admin.courses.edit', compact('course'));
+    public function edit(Course $course) {
+        $departments = Department::orderBy('name')->get();
+        return view('admin.courses.edit', compact('course','departments'));
     }
 
-    public function update(Request $r, $id)
+    public function update(Request $r, Course $course)
     {
-        $c = Course::findOrFail($id);
-        $c->update($r->validate([
-            'code'=>"required|unique:courses,code,$id",
-            'name'=>'required',
-            'credits'=>'required|integer|min:1'
-        ]));
-        return redirect()->route('courses.index')->with('ok','Đã cập nhật');
+        $data = $r->validate([
+            'code'=>['required','max:20', Rule::unique('courses','code')->ignore($course->id)],
+            'name'=>['required','max:150'],
+            'credits'=>['required','integer','min:1','max:10'],
+            'department_id'=>['nullable','exists:departments,id'],
+        ]);
+        $course->update($data);
+        return back()->with('ok','Đã cập nhật');
     }
 
-    public function destroy($id)
+    public function destroy(Course $course)
     {
-        Course::destroy($id);
-        return back()->with('ok','Đã xoá');
+        $course->delete();
+        return back()->with('ok','Đã xoá môn học');
     }
 }

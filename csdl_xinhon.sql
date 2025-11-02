@@ -249,9 +249,10 @@ FROM
 -- ========================================
 -- STORED PROCEDURE
 -- ========================================
+//tida
 DROP PROCEDURE IF EXISTS sp_teacher_daily_schedule;
 DELIMITER $$
-CREATE PROCEDURE sp_teacher_daily_schedule(
+CREATE OR REPLACE PROCEDURE sp_teacher_daily_schedule(
     IN p_teacher_user_id BIGINT,
     IN p_date DATE
 )
@@ -264,9 +265,9 @@ BEGIN
            sch.end_time,
            sc.room
     FROM class_sections sc
-    JOIN teachers t ON t.id = sc.teacher_id
-    JOIN users tu ON tu.id = t.user_id
-    JOIN courses c ON c.id = sc.course_id
+    JOIN teachers t   ON t.id = sc.teacher_id
+    JOIN users tu     ON tu.id = t.user_id
+    JOIN courses c    ON c.id = sc.course_id
     JOIN schedules sch ON sch.class_section_id = sc.id
     WHERE tu.id = p_teacher_user_id
       AND (
@@ -277,9 +278,13 @@ BEGIN
           p_date BETWEEN COALESCE(sc.start_date, p_date)
                      AND COALESCE(sc.end_date, p_date)
       )
+      AND (p_date BETWEEN sc.start_date AND sc.end_date OR sc.start_date IS NULL OR sc.end_date IS NULL)
     ORDER BY sch.start_time;
 END$$
 DELIMITER ;
+CALL sp_student_daily_schedule(10, '2025-10-15');
+CALL sp_teacher_daily_schedule(2, '2025-10-15');
+
 
 DELIMITER $$
 
@@ -1040,7 +1045,7 @@ CREATE TABLE face_templates_simple (
   version VARCHAR(64) DEFAULT 'mfn-1.0',
   is_primary TINYINT(1) DEFAULT 1,
   created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON Uvw_teacher_schedulePDATE CURRENT_TIMESTAMP
 );
 
 ALTER TABLE students ADD COLUMN face_enrolled TINYINT(1) DEFAULT 0;
