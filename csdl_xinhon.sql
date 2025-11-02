@@ -249,8 +249,9 @@ FROM
 -- ========================================
 -- STORED PROCEDURE
 -- ========================================
+//tida
 DELIMITER $$
-CREATE PROCEDURE sp_teacher_daily_schedule(
+CREATE OR REPLACE PROCEDURE sp_teacher_daily_schedule(
     IN p_teacher_user_id BIGINT,
     IN p_date DATE
 )
@@ -263,19 +264,23 @@ BEGIN
            sch.end_time,
            sc.room
     FROM class_sections sc
-    JOIN teachers t ON t.id = sc.teacher_id
-    JOIN users tu ON tu.id = t.user_id
-    JOIN courses c ON c.id = sc.course_id
+    JOIN teachers t   ON t.id = sc.teacher_id
+    JOIN users tu     ON tu.id = t.user_id
+    JOIN courses c    ON c.id = sc.course_id
     JOIN schedules sch ON sch.class_section_id = sc.id
     WHERE tu.id = p_teacher_user_id
       AND (
-        (sch.recurring_flag = 0 AND sch.date = p_date)
-        OR
-        (sch.recurring_flag = 1 AND sch.weekday = WEEKDAY(p_date))
+          (sch.recurring_flag = 1 AND sch.weekday = WEEKDAY(p_date))
+          OR
+          (sch.recurring_flag = 0 AND sch.date = p_date)
       )
+      AND (p_date BETWEEN sc.start_date AND sc.end_date OR sc.start_date IS NULL OR sc.end_date IS NULL)
     ORDER BY sch.start_time;
 END$$
 DELIMITER ;
+CALL sp_student_daily_schedule(10, '2025-10-15');
+CALL sp_teacher_daily_schedule(2, '2025-10-15');
+
 
 DELIMITER $$
 
@@ -1013,6 +1018,12 @@ INSERT INTO schedules (class_section_id, weekday, start_time, end_time, recurrin
 (42, 2, '13:00:00', '15:00:00', 0, NULL, NULL),
 (44, 0, '15:00:00', '17:00:00', 0, NULL, NULL),
 (44, 2, '15:00:00', '17:00:00', 0, NULL, NULL),
+(46, 0, '17:00:00', '19:00:00', 0, NULL, NULL),
+(46, 2, '17:00:00', '19:00:00', 0, NULL, NULL),
+(48, 0, '19:00:00', '21:00:00', 0, NULL, NULL),
+(48, 2, '19:00:00', '21:00:00', 0, NULL, NULL);
+
+
 
 ALTER TABLE attendance_records
   ADD COLUMN method ENUM('face','qr','manual') NULL AFTER student_id,
@@ -1025,13 +1036,7 @@ CREATE TABLE face_templates_simple (
   version VARCHAR(64) DEFAULT 'mfn-1.0',
   is_primary TINYINT(1) DEFAULT 1,
   created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON Uvw_teacher_schedulePDATE CURRENT_TIMESTAMP
 );
 
 ALTER TABLE students ADD COLUMN face_enrolled TINYINT(1) DEFAULT 0;
-
-
-(46, 0, '17:00:00', '19:00:00', 0, NULL, NULL),
-(46, 2, '17:00:00', '19:00:00', 0, NULL, NULL),
-(48, 0, '19:00:00', '21:00:00', 0, NULL, NULL),
-(48, 2, '19:00:00', '21:00:00', 0, NULL, NULL);

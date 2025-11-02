@@ -1,15 +1,18 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Web\AuthWebController;
-use App\Http\Controllers\Admin\DashboardController;
-use App\Http\Controllers\Admin\UsersController;
-use App\Http\Controllers\Admin\CoursesController;
-use App\Http\Controllers\Admin\ClassSectionsController;
-use App\Http\Controllers\Admin\SchedulesController;
-use App\Http\Controllers\Admin\ReportsController;
 
-// Guest: chỉ trang login
+use App\Http\Controllers\Web\AuthWebController;
+use App\Http\Controllers\Admin\{
+    DashboardController, UsersController, CoursesController, ClassSectionsController,
+    SchedulesController, ReportsController
+};
+use App\Http\Controllers\Web\Admin\{
+    StudentsWebController, TeachersWebController, CoursesWebController,
+    ClassSectionsWebController, SchedulesWebController
+};
+
+// ==== Guest ====
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthWebController::class, 'showLogin'])->name('login');
     Route::post('/login', [AuthWebController::class, 'login'])
@@ -17,48 +20,74 @@ Route::middleware('guest')->group(function () {
         ->name('login.post');
 });
 
-// Admin-only area
+// ==== Admin (web session + role:admin) ====
 Route::middleware(['auth:web','role:admin'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-    // Users
-    Route::resource('admin/users', UsersController::class)
-        ->names('admin.users');                 // admin.users.*
+    // --- Schedules: TÁCH RÕ ---
+    Route::get('admin/schedules', [SchedulesWebController::class, 'index'])
+        ->name('admin.schedules.index');
+    Route::get('admin/schedules/create', [\App\Http\Controllers\Web\Admin\SchedulesWebController::class, 'create'])
+        ->name('admin.schedules.create');
+    Route::get('admin/schedules/{id}/edit', [\App\Http\Controllers\Web\Admin\SchedulesWebController::class, 'edit'])
+        ->name('admin.schedules.edit');
+    Route::resource('admin/schedules', \App\Http\Controllers\Admin\SchedulesController::class)
+        ->only(['store','update','destroy'])->names([
+            'store'   => 'admin.schedules.store',
+            'update'  => 'admin.schedules.update',
+            'destroy' => 'admin.schedules.destroy',
+        ]);
 
-    // Courses / ClassSections / Schedules
-    Route::resource('admin/courses', CoursesController::class)
-        ->names('admin.courses');              // admin.courses.*
-    Route::resource('admin/class-sections', ClassSectionsController::class)
-        ->names('admin.class-sections');// admin.class-sections.*
-    Route::resource('admin/schedules', SchedulesController::class)
-        ->names('admin.schedules');         // admin.schedules.*
+    // --- Reports ---
+    Route::get('admin/reports/attendance', [ReportsController::class,'attendance'])->name('reports.attendance');
+    Route::get('admin/reports/attendance/export', [ReportsController::class,'exportCsv'])->name('reports.attendance.export');
 
-    // Reports
-    Route::get('admin/reports/attendance', [ReportsController::class,'attendance'])
-        ->name('reports.attendance');
+    // --- Users ---
+    Route::resource('admin/users', UsersController::class)->names('admin.users');
 
-    // Enrollment APIs
-    Route::get('admin/class-sections/{classSection}/students',
-        [ClassSectionsController::class, 'students']
-    )->name('class-sections.students');
+    // =========================
+    //   COURSES (tách View/Data)
+    // =========================
+    // View (Blade): index/create/edit/show
+    Route::resource('admin/courses', CoursesWebController::class)->only(['index','create','edit','show'])->names([
+        'index'  => 'admin.courses.index',
+        'create' => 'admin.courses.create',
+        'edit'   => 'admin.courses.edit',
+        'show'   => 'admin.courses.show',
+    ]);
+    // Data: store/update/destroy
+    Route::resource('admin/courses', CoursesController::class)->only(['store','update','destroy'])->names([
+        'store'   => 'admin.courses.store',
+        'update'  => 'admin.courses.update',
+        'destroy' => 'admin.courses.destroy',
+    ]);
 
-    Route::post('admin/class-sections/{classSection}/enroll-sync',
-        [ClassSectionsController::class, 'enrollSync']
-    )->name('class-sections.enrollSync');
+    // ==================================
+    //   CLASS SECTIONS (tách View/Data)
+    // ==================================
+    Route::resource('admin/class-sections', ClassSectionsWebController::class)->only(['index','create','edit','show'])->names([
+        'index'  => 'admin.class-sections.index',
+        'create' => 'admin.class-sections.create',
+        'edit'   => 'admin.class-sections.edit',
+        'show'   => 'admin.class-sections.show',
+    ]);
+    Route::resource('admin/class-sections', ClassSectionsController::class)->only(['store','update','destroy'])->names([
+        'store'   => 'admin.class-sections.store',
+        'update'  => 'admin.class-sections.update',
+        'destroy' => 'admin.class-sections.destroy',
+    ]);
 
-    // Aliases để giữ tương thích sidebar/link cũ (tuỳ chọn)
-    Route::get('admin/students', fn() => redirect()->route('admin.users.index', ['role' => 'student']))
-        ->name('students.index');
-    Route::get('admin/teachers', fn() => redirect()->route('admin.users.index', ['role' => 'teacher']))
-        ->name('teachers.index');
-    Route::get('admin/attendance', fn() => redirect()->route('reports.attendance'))
-        ->name('attendance.index');
+    // Enrollment helpers (giữ đường cũ)
+    Route::get('admin/class-sections/{classSection}/students', [ClassSectionsController::class, 'students'])->name('class-sections.students');
+    Route::post('admin/class-sections/{classSection}/enroll-sync', [ClassSectionsController::class, 'enrollSync'])->name('class-sections.enrollSync');
+
+    // Students/Teachers (Web)
+    Route::resource('admin/students', StudentsWebController::class)->names('admin.students');
+    Route::resource('admin/teachers', TeachersWebController::class)->names('admin.teachers');
 });
 
+// ==== Logout ====
+Route::post('/logout', [AuthWebController::class, 'logout'])->middleware('auth:web')->name('logout');
 
-
-Route::post('/logout', [AuthWebController::class, 'logout'])
-    ->middleware('auth:web')
-    ->name('logout');
-
+// ==== Root redirect ====
 Route::get('/', fn() => redirect()->route('dashboard'));

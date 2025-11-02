@@ -1,16 +1,37 @@
-<?php
 @extends('layouts.app')
+@section('title','Thêm môn học')
+
 @section('content')
-    <div class="card"><div class="card-body">
-            <h5 class="mb-3">{{ isset($course) ? 'Sửa' : 'Tạo' }} Course</h5>
-            <form method="POST" action="{{ isset($course)?route('courses.update',$course):route('courses.store') }}">
-                @csrf @if(isset($course)) @method('PUT') @endif
-                <div class="row g-3">
-                    <div class="col-md-3"><label class="form-label">Code</label><input name="code" class="form-control" value="{{ $course->code ?? '' }}" required></div>
-                    <div class="col-md-7"><label class="form-label">Name</label><input name="name" class="form-control" value="{{ $course->name ?? '' }}" required></div>
-                    <div class="col-md-2"><label class="form-label">Credits</label><input name="credits" type="number" min="1" class="form-control" value="{{ $course->credits ?? 3 }}" required></div>
+    <div class="section-title"><h2>Thêm môn học</h2></div>
+    @component('components.card')
+        <form method="post" action="{{ route('admin.courses.store') }}" style="max-width:640px">
+            @csrf
+            <label>Mã môn</label>
+            <input class="form-control" name="code" value="{{ old('code') }}" required>
+
+            <label>Tên môn học</label>
+            <input class="form-control" name="name" value="{{ old('name') }}" required>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                <div>
+                    <label>Tín chỉ</label>
+                    <input class="form-control" type="number" min="1" max="10" name="credits" value="{{ old('credits',3) }}" required>
                 </div>
-                <div class="mt-3"><button class="btn btn-primary">Lưu</button></div>
-            </form>
-        </div></div>
+                <div>
+                    <label>Bộ môn (tuỳ chọn)</label>
+                    <select class="form-control" name="department_id">
+                        <option value="">-- Chưa chọn --</option>
+                        @foreach($departments as $d)
+                            <option value="{{ $d->id }}" @selected(old('department_id')==$d->id)>{{ $d->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
+
+            <div style="margin-top:12px;display:flex;gap:10px">
+                <a class="btn btn-outline" href="{{ route('admin.courses.index') }}">Huỷ</a>
+                <button class="btn">Lưu</button>
+            </div>
+        </form>
+    @endcomponent
 @endsection
