@@ -18,53 +18,75 @@ class StudentController extends Controller
      */
     public function schedule(Request $request)
     {
-        // 1. Lấy ngày và thông tin sinh viên (giữ nguyên)
+        // 1. Lấy ngày và thông tin sinh viên
         $date = $request->input('date') ?? now()->toDateString();
         $user = auth('api')->user();
         $student = Student::where('user_id', $user->id)->firstOrFail();
 
-        // 2. Chuyển đổi thứ (giữ nguyên)
+        // 2. Chuyển đổi thứ
         $carbonDate = Carbon::parse($date);
         $carbonWeekday = $carbonDate->dayOfWeek;
         $weekday = ($carbonWeekday === 0) ? 6 : $carbonWeekday - 1;
 
-        // 3. Query thẳng vào VIEW 'vw_student_schedule' (PHẦN THAY THẾ)
-        $schedules = DB::table('vw_student_schedule')
-            ->where('student_id', $student->id)
-            ->where('weekday', $weekday)
-            ->whereDate('start_date', '<=', $date)
-            ->whereDate('end_date', '>=', $date)
-            ->orderBy('start_time')
-            ->get();
+        // 3. Thực thi truy vấn SQL
+        $sql = "
+            SELECT
+                sc.class_section_id,
+                sc.course_code,
+                sc.course_name,
+                sc.room,
+                sc.start_time,
+                sc.end_time
+            FROM
+                vw_student_schedule sc
+            WHERE
+                sc.student_id = ?
+                AND sc.weekday = ?
+                AND sc.start_date <= ?
+                AND sc.end_date >= ?
+            ORDER BY
+                sc.start_time;
+        ";
 
-        // 4. Biến đổi dữ liệu (vẫn cần làm để ghép ngày + giờ)
-        $formattedSchedules = $schedules->map(function ($schedule) use ($carbonDate) {
+        $schedules = DB::select($sql, [
+            $student->id,
+            $weekday,
+            $date,
+            $date
+        ]);
 
-            $dbTime = Carbon::parse($schedule->start_time);
-            $startTime = $carbonDate->copy()->setTime(
-                $dbTime->hour,
-                $dbTime->minute,
-                $dbTime->second
-            );
-            $dbEndTime = Carbon::parse($schedule->end_time);
-            $endTime = $carbonDate->copy()->setTime(
-                $dbEndTime->hour,
-                $dbEndTime->minute,
-                $dbEndTime->second
-            );
+        // 4. Biến đổi dữ liệu (mapping) - FIX LỆCH GIỜ CUỐI CÙNG
+        $formattedSchedules = collect($schedules)->map(function ($schedule) use ($carbonDate) {
+
+            // Lấy chuỗi ngày và giờ thuần
+            $dateTimeString = $carbonDate->toDateString() . ' ' . $schedule->start_time;
+            $endDateTimeString = $carbonDate->toDateString() . ' ' . $schedule->end_time;
+
+            // 🐛 FIX CUỐI CÙNG: Dùng createFromFormat để ép múi giờ NGUỒN là UTC (Giả định của CSDL)
+            // Sau đó, chuyển nó sang múi giờ ĐÍCH (VN).
+
+            // Đối tượng Carbon (tạm thời) dựa trên chuỗi ngày/giờ:
+            $tempStart = Carbon::createFromFormat('Y-m-d H:i:s', $dateTimeString, 'UTC');
+            $tempEnd = Carbon::createFromFormat('Y-m-d H:i:s', $endDateTimeString, 'UTC');
+
+            // Chuyển đối tượng từ UTC sang múi giờ App (VN)
+            $startDateTime = $tempStart->setTimezone(config('app.timezone'));
+            $endDateTime = $tempEnd->setTimezone(config('app.timezone'));
+
 
             return [
                 'class_section_id' => $schedule->class_section_id,
                 'course_code' => $schedule->course_code,
                 'course_name' => $schedule->course_name,
-                'class_name'  => $schedule->course_code,
+                'class_name'  => $schedule->course_name,
                 'room'        => $schedule->room,
-                'start_time'  => $startTime->toIso8601String(),
-                'end_time'    => $endTime->toIso8601String(),
+
+                // 🐛 TRẢ VỀ ISO8601 STRING: Flutter sẽ nhận 08:00:00+07:00
+                'start_time'  => $startDateTime->toIso8601String(),
+                'end_time'    => $endDateTime->toIso8601String(),
             ];
         });
 
-        // 5. Trả về JSON (giữ nguyên)
         return response()->json([
             'success' => true,
             'data' => $formattedSchedules,

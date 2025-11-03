@@ -1,11 +1,14 @@
 import 'dart:async';
+import 'package:attendance_app/screens/teacher/teacher_home.dart';
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../utils/config.dart';
 import 'package:dio/dio.dart';
-
+import '../../models/user.dart';
 import '../../api/api_client.dart';
 import '../../utils/config.dart';
+import 'create_session_page.dart';
 
 class ShowQrPage extends StatefulWidget {
   final Map<String, dynamic> session;
@@ -54,7 +57,7 @@ class _ShowQrPageState extends State<ShowQrPage> {
         if (code == 200 || code == 204) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Đã kết thúc phiên trên server')),
+              const SnackBar(content: Text('Đã kết thúc phiên điểm danh')),
             );
             Navigator.pop(context);
           }
@@ -91,8 +94,6 @@ class _ShowQrPageState extends State<ShowQrPage> {
     super.initState();
     print("--- MÀN HÌNH QR INIT ---"); // Lệnh debug
 
-    // Prefer deep_link if server provided it (full URL), otherwise build a stable payload.
-    // Use full deep_link so student scanner can parse ?token=... reliably.
     final tokenVal = widget.session['token']?.toString();
     final deepLink = widget.session['deep_link']?.toString();
     if (deepLink != null && deepLink.isNotEmpty) {
@@ -119,29 +120,39 @@ class _ShowQrPageState extends State<ShowQrPage> {
 
     // Nếu không có thời gian hợp lệ, dừng lại và báo lỗi
     if (_startTime == null || _endTime == null) {
-      print("LỖI: Thời gian start/end là null hoặc không hợp lệ. Timer SẼ KHÔNG chạy.");
-      setState(() {
-        _statusMessage = "Lỗi: Thời gian không hợp lệ";
-        remainingSeconds = 0;
-      });
-      return; // Quan trọng: Thoát ra
+      if (_startTime!.isAfter(_endTime!)) {
+        print(
+            "LỖI: Thời gian start/end là null hoặc không hợp lệ. Timer SẼ KHÔNG chạy.");
+        setState(() {
+          _statusMessage = "Lỗi: Thời gian không hợp lệ";
+          remainingSeconds = 0;
+        });
+        return;
+      }// Quan trọng: Thoát ra
     }
+    else {
+      print("Thời gian hợp lệ. Đang bắt đầu timer...");
 
-    print("Thời gian hợp lệ. Đang bắt đầu timer...");
-
-    // Cập nhật thời gian lần đầu tiên
-    _updateRemainingTime();
-
-    // Bắt đầu timer và gọi hàm cập nhật mỗi giây
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      // Cập nhật thời gian lần đầu tiên
       _updateRemainingTime();
-    });
+
+      // Bắt đầu timer và gọi hàm cập nhật mỗi giây
+      _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+        _updateRemainingTime();
+      });
+    }
   }
 
-  /// ✅ THAY ĐỔI 2: Cập nhật hàm này để xử lý 3 trạng thái
   void _updateRemainingTime() {
     // Nếu không có thời gian, dừng lại
-    if (_startTime == null || _endTime == null) {
+    if (_startTime == null || _endTime == null || _startTime!.isAfter(_endTime!)) {
+      _timer?.cancel();
+      Navigator.pop(context);
+    }
+
+    // 🔹 Thêm kiểm tra `mounted` ở đầu
+    // Nếu trang bị đóng rồi thì không cần chạy nữa
+    if (!mounted) {
       _timer?.cancel();
       return;
     }
@@ -150,35 +161,37 @@ class _ShowQrPageState extends State<ShowQrPage> {
 
     if (now.isBefore(_startTime!)) {
       // --- TRƯỜNG HỢP 1: Phiên chưa bắt đầu ---
-      final diff = _startTime!.difference(now).inSeconds;
+      final diff = _startTime!.isBefore(now);
       setState(() {
-        _statusMessage = "Sắp bắt đầu sau:"; // Thay đổi 1
-        // Hiển thị đếm ngược TỚI LÚC BẮT ĐẦU
-        remainingSeconds = diff > 0 ? diff : 0;
+        _statusMessage = "Sắp bắt đầu sau:";
+        remainingSeconds = diff ? 0 : _startTime!.difference(now).inSeconds;
       });
 
     } else if (now.isAfter(_endTime!)) {
       // --- TRƯỜNG HỢP 3: Phiên đã kết thúc ---
       setState(() {
-        _statusMessage = "Phiên đã kết thúc"; // Thay đổi 2
+        _statusMessage = "Phiên đã kết thúc";
         remainingSeconds = 0;
+        _closeSession();
+
       });
       _timer?.cancel();
 
-      // Hiển thị thông báo và đóng trang
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Phiên điểm danh đã kết thúc!')),
-        );
-        Navigator.pop(context);
-      }
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Phiên điểm danh đã kết thúc!')),
+          );
+          Navigator.pop(context);{
+          }
+        }
+      });
 
     } else {
       // --- TRƯỜNG HỢP 2: Phiên đang diễn ra (logic đếm ngược) ---
       final diff = _endTime!.difference(now).inSeconds;
       setState(() {
-        _statusMessage = "Thời gian còn lại:"; // Thay đổi 3
-        // Hiển thị đếm ngược TỚI LÚC KẾT THÚC
+        _statusMessage = "Thời gian còn lại:";
         remainingSeconds = diff > 0 ? diff : 0;
       });
     }
@@ -223,7 +236,6 @@ class _ShowQrPageState extends State<ShowQrPage> {
                     color: Colors.deepPurpleAccent.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  // ✅ THAY ĐỔI 3: Sử dụng _statusMessage và hàm formatDuration
                   child: Text(
                     "$_statusMessage ${formatDuration(remainingSeconds)}",
                     style: const TextStyle(
@@ -268,8 +280,28 @@ class _ShowQrPageState extends State<ShowQrPage> {
                   onPressed: _isClosing
                       ? null
                       : () async {
-                          await _closeSession();
-                        },
+                    _timer?.cancel();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Phiên điểm danh đã kết thúc')),
+                    );
+                    await _closeSession();
+
+                    final prefs = await SharedPreferences.getInstance();
+                    final user = AppUser(
+                      id: prefs.getInt('id') ?? 0,
+                      name: prefs.getString('user_name') ?? '',
+                      email: prefs.getString('email') ?? '',
+                      role: prefs.getString('role') ?? 'teacher',
+                    );
+
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => TeacherHome(user: user),
+                      ),
+                      (Route<dynamic> route) => false,
+                    );
+                  },
                   label: _isClosing
                       ? const Text(
                           "Đang kết thúc...",
