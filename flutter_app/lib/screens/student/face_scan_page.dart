@@ -28,7 +28,7 @@ class _FaceScanPageState extends State<FaceScanPage> {
       final XFile? img = await _picker.pickImage(
         source: ImageSource.camera,
         maxWidth: 1280,
-        imageQuality: 85,
+        imageQuality: 100,
         preferredCameraDevice: CameraDevice.front,
       );
 

@@ -183,7 +183,8 @@ class _StudentHomeState extends State<StudentHome> {
     );
     if (qrToken == null || !context.mounted) return;
 
-    // 2. Mở trang Quét Mặt
+    // 2. 🎨 SỬA: Mở trang Quét Mặt (nhận File)
+    // FaceScanPage phải được sửa để trả về File (như trong hướng dẫn trước)
     final File? facePhoto = await Navigator.push<File>(
       context,
       MaterialPageRoute(
@@ -192,13 +193,13 @@ class _StudentHomeState extends State<StudentHome> {
     );
     if (facePhoto == null || !context.mounted) return;
 
-    // 3. Mở trang Tải dữ liệu
+    // 3. 🎨 SỬA: Mở trang Tải dữ liệu (truyền File)
     await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => StudentCheckinLoadingPage(
           qrToken: qrToken,
-          facePhoto: facePhoto,
+          facePhoto: facePhoto, // 👈 Truyền File
         ),
       ),
     );
