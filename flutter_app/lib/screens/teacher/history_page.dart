@@ -228,16 +228,26 @@ class _HistoryPageState extends State<HistoryPage> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
         onTap: () {
-          // Xử lý điều hướng khi nhấn vào thẻ
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => DetailPage(
-                sessionId: session.id, // (Đảm bảo model của bạn có 'id')
-                courseTitle: session.courseName, // (hoặc session.courseName)
+          print("Đang bấm vào session với ID: ${session.sessionId}");
+          final String sessionId = session.sessionId.toString();
+          final String courseName = session.courseName;
+          if (sessionId.isNotEmpty) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => DetailPage(
+                  courseTitle: courseName,
+                  sessionId: sessionId,
+                ),
               ),
-            ),
-          );
+            );
+          } else {
+            // Xử lý trường hợp ID không hợp lệ
+            print("Lỗi: Không thể mở trang chi tiết vì session ID không hợp lệ.");
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Không thể tải chi tiết phiên. Vui lòng thử lại.')),
+            );
+          }
         },
         borderRadius: BorderRadius.circular(12),
         child: Padding(

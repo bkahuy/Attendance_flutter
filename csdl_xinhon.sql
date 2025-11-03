@@ -917,7 +917,10 @@ INSERT INTO class_section_students (class_section_id, student_id) VALUES
 (48, 116), (48, 117), (48, 118), (48, 119), (48, 120);
 
 
+INSERT INTO schedules (class_section_id, date, weekday, start_time, end_time, recurring_flag, location_lat, location_lng) VALUES
+(1, '2025-11-03', 0, '05:40:00', '06:50:00', 1, NULL, NULL)
 
+DELETE FROM attendance_sessions
 
 INSERT INTO schedules (class_section_id, weekday, start_time, end_time, recurring_flag, location_lat, location_lng) VALUES
 -- Giảng viên 2 (Dạy 1, 3, 5, 7, 9, 11) & Giảng viên 3 (Dạy 2, 4, 6, 8, 10, 12)
@@ -1112,3 +1115,36 @@ WHERE c.name LIKE 'Lập trình Java'
 GROUP BY ats.id, ats.start_at, ats.end_at, ats.created_at,
     cs.id, cs.term, cs.room, c.code, c.name, s.start_time
 ORDER BY ats.created_at DESC
+
+
+
+
+
+SELECT
+    u.name AS student_name,
+    s.student_code,
+    s.id AS student_id,
+    a_sess.id AS attendance_session_id,
+    ar.created_at AS check_in_time,
+    ar.status AS attendance_status
+FROM
+    class_section_students css
+JOIN
+    students s ON css.student_id = s.id
+JOIN
+    users u ON s.user_id = u.id
+JOIN
+    -- Nối với TẤT CẢ các buổi điểm danh của lớp học phần đó
+    attendance_sessions a_sess ON a_sess.class_section_id = css.class_section_id
+LEFT JOIN
+    -- Lấy bản ghi điểm danh,
+    -- nối với cả student_id VÀ attendance_session_id
+    attendance_records ar ON ar.student_id = s.id
+                         AND ar.attendance_session_id = a_sess.id
+WHERE
+    -- Lọc đúng lớp học phần
+    css.class_section_id = 1
+ORDER BY
+    u.name
+    
+    

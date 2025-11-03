@@ -99,6 +99,7 @@ class TeacherController extends Controller
             'end_at'           => 'required|date|after:start_at',
             'mode_flags'       => 'required|array',
             'password'         => 'nullable|string',
+            'status'           => 'nullable|in:present,late,absent',
             'schedule_id'      => 'nullable|exists:schedules,id',
         ]);
 
@@ -130,6 +131,7 @@ class TeacherController extends Controller
                 'end_at'     => $data['end_at'],
                 'mode_flags' => $data['mode_flags'],
                 'password_hash' => $data['password_hash'] ?? null,
+                'status'     => $data['status'] ?? 'open',
                 'schedule_id' => $data['schedule_id'] ?? null,
                 'updated_at' => now(),
             ]);
@@ -214,6 +216,7 @@ class TeacherController extends Controller
             }
 
             // Cập nhật status thành closed
+            $session->end_at = now();
             $session->status = 'closed';
             $session->save();
 
@@ -251,13 +254,110 @@ class TeacherController extends Controller
     }
 
 
-    /**
-     * GET /api/attendance/session/{id}
-     */
+    public function showSessionDetail($id)
+    {
+        try {
+            // 1. Lấy thông tin cơ bản của buổi học
+            $sessionInfo = DB::table('attendance_sessions as a_sess')
+                ->join('class_sections as cs', 'a_sess.class_section_id', '=', 'cs.id')
+                ->join('courses as c', 'cs.course_id', '=', 'c.id')
+                ->where('a_sess.id', $id)
+                ->select(
+                    'a_sess.id',
+                    'a_sess.start_at',
+                    'a_sess.end_at',
+                    'a_sess.status as session_status',
+                    'c.name as course_name',
+                    'cs.id as class_section_id'
+                )
+                ->first();
+
+            if (!$sessionInfo) {
+                return response()->json(['message' => 'Không tìm thấy buổi học.'], 404);
+            }
+
+            // 2. Lấy danh sách sinh viên và trạng thái điểm danh
+            // Dùng câu lệnh LEFT JOIN (từ câu trả lời đầu tiên của tôi)
+            $students = DB::table('class_section_students as css')
+                ->join('students as s', 'css.student_id', '=', 's.id')
+                ->join('users as u', 's.user_id', '=', 'u.id')
+                ->leftJoin('attendance_records as ar', function($join) use ($id) {
+                    $join->on('ar.student_id', '=', 's.id')
+                        ->where('ar.attendance_session_id', '=', $id); // Chỉ join với session ID này
+                })
+                ->where('css.class_section_id', $sessionInfo->class_section_id)
+                ->select(
+                    's.id as student_id',
+                    'u.name as student_name',
+                    's.student_code',
+                    'ar.created_at as checkin_time',
+                    DB::raw("COALESCE(ar.status, 'absent') as status")
+                )
+                ->orderBy('u.name')
+                ->get();
+
+            // 3. Đếm số lượng
+            // (Chúng ta phải đếm từ collection $students vì nó đã bao gồm cả 'absent')
+            $counts = $students->countBy('status');
+
+            // 4. Trả về MỘT OBJECT (Map) duy nhất
+            return response()->json([
+                // 'data' là tùy chọn, nhưng nên có
+                // để khớp với res.data['data'] trong Flutter
+                'data' => [
+                    'session_info' => $sessionInfo,
+                    'students' => $students,
+                    'present_count' => $counts->get('present', 0),
+                    'late_count' => $counts->get('late', 0),
+                    'absent_count' => $counts->get('absent', 0),
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            // Log::error('Lỗi khi lấy chi tiết buổi học: ' . $e->getMessage());
+            return response()->json(['message' => 'Lỗi máy chủ: ' . $e->getMessage()], 500);
+        }
+    }
+
+
     public function sessionDetail($id)
     {
-        return AttendanceSession::with(['classSection.course', 'records.student.user'])
-            ->findOrFail($id);
+        try {
+            $details = DB::table('class_section_students as css')
+                ->where('css.class_section_id', $id)
+                ->join('students as s', 'css.student_id', '=', 's.id')
+                ->join('users as u', 's.user_id', '=', 'u.id')
+                ->join('attendance_sessions as a_sess', 'a_sess.class_section_id', '=', 'css.class_section_id')
+                ->leftJoin('attendance_records as ar', function ($join) {
+                    $join->on('ar.student_id', '=', 's.id')
+                        ->on('ar.attendance_session_id', '=', 'a_sess.id');
+                })
+                ->select(
+                    'u.name as student_name',
+                    's.student_code',
+                    'a_sess.id as session_id',
+                    'ar.created_at as checkin_time',
+                    'ar.status as attendance_status',
+                )
+                ->orderBy('u.name', 'asc')
+                ->get();
+
+            if ($details->isEmpty()) {
+                // Vẫn dùng response()->json() để trả về lỗi 404
+                return response()->json([
+                    'message' => 'Không tìm thấy dữ liệu.'
+                ], 404);
+            }
+
+            // Vẫn dùng response()->json() để trả về dữ liệu
+            return response()->json(['data' => $details], 200);
+
+        } catch (\Exception $e) {
+            // Log::error('Lỗi khi lấy chi tiết session: ' . $e->getMessage());
+
+            // Vẫn dùng response()->json() để trả về lỗi 500
+            return response()->json(['message' => 'Đã xảy ra lỗi máy chủ.'], 500);
+        }
     }
 
     public function getSessionsByClassSection($classSectionId)
@@ -330,10 +430,6 @@ class TeacherController extends Controller
         }
     }
 
-    /**
-     * GET /api/teacher/session/{sessionId}/attendance-records
-     * Lấy danh sách sinh viên điểm danh cho một phiên cụ thể
-     */
     public function getAttendanceRecords($sessionId)
     {
         try {
@@ -460,11 +556,7 @@ class TeacherController extends Controller
         }
     }
 
-    /**
-     * GET /api/teacher/search-attendance-history
-     * Tìm kiếm lịch sử các môn đã có phiên điểm danh
-     * Query params: course_name, class_name, room, time, date_from, date_to
-     */
+
     public function searchAttendanceHistory(Request $request)
     {
         try {
@@ -620,6 +712,50 @@ class TeacherController extends Controller
         } catch (\Throwable $e) {
             Log::error('[teacher.searchAttendanceHistory] ' . $e->getMessage(), [
                 'request' => $request->all()
+            ]);
+            return response()->json(['error' => 'SERVER_ERROR', 'hint' => $e->getMessage()], 500);
+        }
+    }
+
+    public function getActiveSessionByClass(Request $request, $classSectionId)
+    {
+        try {
+            // 1. Kiểm tra quyền (Giữ nguyên logic của bạn)
+            $teacherUserId = auth('api')->id();
+            $checkPermission = DB::selectOne("
+            SELECT cs.id
+            FROM class_sections cs
+            JOIN teachers t ON t.id = cs.teacher_id
+            WHERE cs.id = ? AND t.user_id = ?
+        ", [$classSectionId, $teacherUserId]);
+
+            if (!$checkPermission) {
+                return response()->json(['error' => 'NO_PERMISSION'], 403);
+            }
+            // 2. Tìm phiên ĐANG HOẠT ĐỘNG (dùng Eloquent cho ngắn gọn)
+            $session = AttendanceSession::where('class_section_id', $classSectionId)
+                ->whereRaw('NOW() BETWEEN start_at AND end_at')
+                ->first();
+            $qr = null;
+            // 3. Nếu không tìm thấy, trả về 404 (Not Found)
+            if (!$session) {
+                return response()->json(['message' => 'No active session found'], 404);
+            }
+            else if ($session->status === 'open') {
+                $qr = DB::table('qr_tokens')
+                    ->where('attendance_session_id', $session->id)
+                    ->select('token') // Chỉ chọn 2 cột app cần
+                    ->first();
+            }
+            // 5. Trả về cấu trúc mà app Flutter mong đợi
+            return response()->json([
+                'session' => $session, // Tự động convert 'mode_flags' nếu bạn có $casts
+                'qr'      => $qr      // Sẽ là null nếu không có QR, app Flutter đã xử lý
+            ]);
+
+        } catch (\Throwable $e) {
+            Log::error('[teacher.getActiveSessionByClass] ' . $e->getMessage(), [
+                'class_section_id' => $classSectionId
             ]);
             return response()->json(['error' => 'SERVER_ERROR', 'hint' => $e->getMessage()], 500);
         }

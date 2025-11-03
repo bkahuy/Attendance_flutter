@@ -1,5 +1,7 @@
 class AttendanceHistory {
   final String id; // Thêm ID để biết nhấn vào session nào
+  final String classSectionId;
+  final String sessionId;
   final String courseName;
   final String className;
   final String room;
@@ -9,6 +11,8 @@ class AttendanceHistory {
 
   AttendanceHistory({
     required this.id,
+    required this.classSectionId,
+    required this.sessionId,
     required this.courseName,
     required this.className,
     required this.room,
@@ -21,6 +25,8 @@ class AttendanceHistory {
   factory AttendanceHistory.fromJson(Map<String, dynamic> json) {
     return AttendanceHistory(
       id: json['id'].toString(),
+      classSectionId: json['class_section_id'].toString(),
+      sessionId: json['session_id'].toString(),
       courseName: json['course_name'] ?? 'N/A',
       className: json['class_names'] ?? 'N/A',
       room: json['room'] ?? 'N/A',
