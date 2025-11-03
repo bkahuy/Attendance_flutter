@@ -135,7 +135,7 @@ class _StudentCheckinPageState extends State<StudentCheckinPage> {
   @override
   Widget build(BuildContext context) {
     final s = widget.session;
-    final className = s['class_name'] ?? 'Lớp không rõ';
+    final className = s['class_name'] ?? 'Lớp';
     final courseName = s['course_name'] ?? 'Tên môn học';
 
     final sessionDate = DateTime.tryParse(s['date'] ?? '') ?? DateTime.now();

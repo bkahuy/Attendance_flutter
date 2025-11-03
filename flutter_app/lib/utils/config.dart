@@ -8,7 +8,8 @@ class AppConfig {
   static const String teacherCloseSession  = '/api/attendance/session';
   static const String teacherCreateSessionPath = '/api/attendance/session';
   static const String attendanceHistory = '/api/attendance/session/search';
-  static const String attendanceHistoryDetail = '/api/attendance/session';
+  static const String attendanceHistoryDetail = '/api/attendance/sessionDetail';
+  static const String checkActiveSession = '/api/attendance/checkActiveSession';
   static const String studentSchedulePath = '/api/student/schedule';
   static const String studentResolveQrPath = '/api/attendance/resolve-qr';
   static const String studentCheckinPath = '/api/attendance/checkin';

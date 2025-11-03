@@ -8,22 +8,22 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Http; // 🎨 1. THÊM IMPORT NÀY
 use Illuminate\Support\Facades\Log;
 
 class StudentController extends Controller
 {
     /**
-     * 📅 Lấy lịch học (schedule) - FIX LỖI LỆCH GIỜ (-7H)
+     * 📅 Lấy lịch học (schedule)
      */
     public function schedule(Request $request)
     {
-        // 1. Lấy ngày và thông tin sinh viên
+        // 1. Lấy ngày và thông tin sinh viên (giữ nguyên)
         $date = $request->input('date') ?? now()->toDateString();
         $user = auth('api')->user();
         $student = Student::where('user_id', $user->id)->firstOrFail();
 
-        // 2. Chuyển đổi thứ
+        // 2. Chuyển đổi thứ (giữ nguyên)
         $carbonDate = Carbon::parse($date);
         $carbonWeekday = $carbonDate->dayOfWeek;
         $weekday = ($carbonWeekday === 0) ? 6 : $carbonWeekday - 1;
@@ -100,11 +100,10 @@ class StudentController extends Controller
 
 
     /**
-     * 📸 XỬ LÝ CHECK-IN (Đã hoàn chỉnh logic Face Verification)
+     * 📸 Xử lý check-in (checkIn)
      */
     public function checkIn(Request $r)
     {
-        // (Các hàm checkIn, registerFace, v.v. giữ nguyên)
         $data = $r->validate([
             'attendance_session_id' => 'required|exists:attendance_sessions,id',
             'status' => 'required|in:present,late,absent',
@@ -123,7 +122,6 @@ class StudentController extends Controller
         //     return response()->json(['error' => 'Session is not active'], 400);
         // }
 
-        // Kiểm tra Password nếu có
         $flags = $session->mode_flags ?? [];
         if (!empty($flags['password']) && $session->password_hash) {
             if (empty($data['password']) || !Hash::check($data['password'], $session->password_hash)) {
@@ -152,35 +150,31 @@ class StudentController extends Controller
                 'template2_base64' => $newTemplateBase64,
             ]);
 
-            if ($response->successful()) {
-                if ($response->json('is_match') === true) {
-                    $isMatch = true;
-                    Log::info('Face match SUCCESS for student ' . $student->id . ': ' . $response->json('similarity'));
-                } else {
-                    $aiError = $response->json('error', 'Khuôn mặt không khớp (Lỗi AI).');
-                    Log::warning('Face match FAILED for student ' . $student->id . ': ' . $aiError);
-                }
+            // Kiểm tra xem AI service có chạy thành công VÀ có khớp không
+            if ($response->successful() && $response->json('is_match') === true) {
+                $isMatch = true;
+                Log::info('Face match SUCCESS for student ' . $student->id . ': ' . $response->json('similarity'));
             } else {
-                $aiError = $response->json('error', 'Lỗi dịch vụ AI (response not successful)');
-                Log::warning('Face match FAILED (Server error) for student ' . $student->id . ': ' . $aiError);
+                Log::warning('Face match FAILED for student ' . $student->id . ': ' . $response->body());
             }
 
         } catch (\Exception $e) {
+            // Lỗi nếu không kết nối được service Python (ví dụ: 127.0.0.1:5001 bị tắt)
             Log::error('AI Service connection error: ' . $e->getMessage());
             return response()->json(['error' => 'Lỗi dịch vụ AI: Không thể so sánh khuôn mặt.'], 500);
         }
+        // --- KẾT THÚC PHẦN SỬA ---
 
-        // 4. Trả về lỗi nếu không khớp
         if (!$isMatch) {
-            return response()->json(['error' => $aiError], 400);
+            return response()->json(['error' => 'Khuôn mặt không khớp. Vui lòng thử lại.'], 400);
         }
 
-        // 5. Ghi record (Nếu khớp)
+        // 4. 🎨 SỬA LẠI: Ghi record (KHÔNG cần lưu ảnh)
         $rec = AttendanceRecord::updateOrCreate(
             ['attendance_session_id' => $session->id, 'student_id' => $student->id],
             [
                 'status' => $data['status'],
-                'photo_path' => null, // Không lưu ảnh nữa
+                'photo_path' => null, // 👈 Không lưu ảnh nữa
                 'gps_lat' => $data['gps_lat'] ?? null,
                 'gps_lng' => $data['gps_lng'] ?? null,
                 'created_at' => now(),
@@ -195,7 +189,6 @@ class StudentController extends Controller
      */
     public function attendanceHistory(Request $request, $classSectionId)
     {
-        // (Code hàm 'attendanceHistory' giữ nguyên)
         $user = auth('api')->user();
         $student = Student::where('user_id', $user->id)->firstOrFail();
         $sessions = AttendanceSession::where('class_section_id', $classSectionId)
@@ -221,10 +214,10 @@ class StudentController extends Controller
 
     /**
      * 🎨 HÀM ĐĂNG KÝ KHUÔN MẶT (registerFace)
+     * (Code hàm 'registerFace' của bạn đã ổn, giữ nguyên)
      */
     public function registerFace(Request $request)
     {
-        // (Code hàm 'registerFace' giữ nguyên)
         try {
             $data = $request->validate([
                 'template_base64' => 'required|string',
@@ -235,27 +228,22 @@ class StudentController extends Controller
                 return response()->json(['error' => 'Student profile not found'], 400);
             }
             $base64String = $data['template_base64'];
-
             try {
-                // INSERT vào bảng đúng tên
                 $id = DB::table('face_templates_simple')->insertGetId([
                     'student_id'    => $student->id,
                     'template'      => $base64String,
                     'created_at'    => Carbon::now(),
                 ]);
             } catch (\Illuminate\Database\QueryException $e) {
-                // Xử lý dự phòng (nếu cột 'created_at' cũng không có)
                 if (str_contains($e->getMessage(), 'Unknown column \'created_at\'')) {
                     $id = DB::table('face_templates_simple')->insertGetId([
                         'student_id'    => $student->id,
                         'template'      => $base64String,
                     ]);
                 } else {
-                    throw $e; // Báo lỗi SQL khác
+                    throw $e;
                 }
             }
-
-            // Logic đánh dấu user đã đăng ký
             $user->face_image_path = 'registered';
             $user->save();
             return response()->json([

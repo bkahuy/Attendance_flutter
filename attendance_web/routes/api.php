@@ -26,7 +26,9 @@ Route::middleware(['auth:api','role:teacher'])->group(function(){
     Route::post('attendance/session',[TeacherController::class,'createSession']);
     Route::put('attendance/session/{id}/close',[TeacherController::class,'closeSession']);
     Route::get('attendance/session/search',[TeacherController::class,'searchAttendanceHistory']);
-    Route::get('attendance/session/{id}/detail',[TeacherController::class,'getAttendanceRecords']);
+    Route::get('attendance/sessionDetail/{id}/detail',[TeacherController::class,'sessionDetail']);
+    Route::get('attendance/sessionDetail/{id}', [TeacherController::class, 'showSessionDetail']);
+    Route::get('attendance/checkActiveSession/{id}',[TeacherController::class,'getActiveSessionByClass']);
     Route::get('stats/class/{id}',[StatsController::class,'classStats']);
     Route::get('stats/session/{id}',[StatsController::class,'sessionStats']);
 });
