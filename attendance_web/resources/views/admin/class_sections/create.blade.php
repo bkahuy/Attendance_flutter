@@ -37,27 +37,32 @@
                     </select>
                 </div>
                 <div>
-                    <label>Kì học</label>
-                    <input class="form-control" name="term" placeholder="VD: 2025A">
+                    <label>Kỳ học</label>
+                    <select class="form-control" name="term">
+                        <option value="">-- Chưa đặt --</option>
+                        @foreach($termOptions as $t)
+                            <option value="{{ $t }}" @selected(old('term')==$t)>{{ $t }}</option>
+                        @endforeach
+                    </select>
                 </div>
                 <div>
                     <label>Phòng</label>
-                    <input class="form-control" name="room">
+                    <input class="form-control" name="room" value="{{ old('room') }}">
                 </div>
             </div>
 
             <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px">
                 <div>
                     <label>Sĩ số</label>
-                    <input class="form-control" type="number" min="1" max="500" name="capacity" value="50">
+                    <input class="form-control" type="number" min="1" max="500" name="capacity" value="{{ old('capacity',50) }}">
                 </div>
                 <div>
                     <label>Ngày bắt đầu</label>
-                    <input class="form-control" type="date" name="start_date">
+                    <input class="form-control" type="date" name="start_date" value="{{ old('start_date') }}">
                 </div>
                 <div>
                     <label>Ngày kết thúc</label>
-                    <input class="form-control" type="date" name="end_date">
+                    <input class="form-control" type="date" name="end_date" value="{{ old('end_date') }}">
                 </div>
             </div>
 

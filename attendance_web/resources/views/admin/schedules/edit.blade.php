@@ -15,6 +15,11 @@
                     </option>
                 @endforeach
             </select>
+            <div style="margin-top:8px">
+                <label>Phòng học</label>
+                <input class="form-control" type="text" name="room" value="{{ old('room',$schedule->room) }}" placeholder="VD: P201 hoặc Online">
+            </div>
+
 
             <div style="margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:10px">
                 <div>
@@ -27,8 +32,8 @@
                 </div>
             </div>
 
+            @php $isRecurring = old('recurring_flag', $schedule->recurring_flag) ? true:false; @endphp
             <div style="margin-top:8px">
-                @php $isRecurring = old('recurring_flag', $schedule->recurring_flag) ? true:false; @endphp
                 <label><input type="checkbox" name="recurring_flag" value="1" {{ $isRecurring ? 'checked':'' }} onchange="toggleRecurring(this)"> Lặp hàng tuần</label>
             </div>
 
@@ -38,7 +43,7 @@
             </div>
 
             <div id="weekly" style="margin-top:8px; {{ $isRecurring ? '':'display:none' }}">
-                <label>Thứ (WEEKDAY: Thứ 2=0 … Chủ nhật=6)</label>
+                <label>Thứ</label>
                 <select class="form-control" name="weekday">
                     <option value="">-- Chọn thứ --</option>
                     @for($i=0;$i<=6;$i++)
@@ -63,4 +68,3 @@
         </script>
     @endpush
 @endsection
-

@@ -15,13 +15,13 @@
     <div class="login-panel">
         <div class="form-wrap">
             <div class="login-logo">
-                <img src="{{ asset('images/tlu.webp') }}" alt="TLU" style="width:72px;height:72px;">
+                <img src="{{ asset('images/tlu.webp') }}" alt="TLU" style="width:110px;height:90px;">
 
             </div>
 
             <div class="login-title">
                 <h1>TLU</h1>
-                <p>Chào mừng trở lại với TLU</p>
+                <p>Trang Quản lý cho Admin</p>
             </div>
 
             @if ($errors->any())
@@ -48,9 +48,6 @@
                 </div>
 
                 <div class="row">
-                    <label class="remember">
-                        <input type="checkbox" name="remember"> Ghi nhớ
-                    </label>
                     @if (Route::has('password.request'))
                         <a href="{{ route('password.request') }}" style="color:#fff;text-decoration:underline;">Quên mật khẩu?</a>
                     @endif

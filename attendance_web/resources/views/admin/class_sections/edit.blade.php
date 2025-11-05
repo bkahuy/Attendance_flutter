@@ -37,8 +37,13 @@
                     </select>
                 </div>
                 <div>
-                    <label>Kì học</label>
-                    <input class="form-control" name="term" value="{{ old('term',$section->term) }}">
+                    <label>Kỳ học</label>
+                    <select class="form-control" name="term">
+                        <option value="">-- Chưa đặt --</option>
+                        @foreach($termOptions as $t)
+                            <option value="{{ $t }}" @selected(old('term',$section->term)==$t)>{{ $t }}</option>
+                        @endforeach
+                    </select>
                 </div>
                 <div>
                     <label>Phòng</label>

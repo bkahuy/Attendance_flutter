@@ -13,6 +13,11 @@
                     <option value="{{ $cs->id }}">{{ $cs->id }} — {{ $cs->course->code ?? '' }} {{ $cs->course->name ?? '' }}</option>
                 @endforeach
             </select>
+            <div style="margin-top:8px">
+                <label>Phòng học</label>
+                <input class="form-control" type="text" name="room" placeholder="VD: P201 hoặc Online">
+            </div>
+
 
             <div style="margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:10px">
                 <div>
@@ -29,19 +34,39 @@
                 <label><input type="checkbox" name="recurring_flag" value="1" onchange="toggleRecurring(this)"> Lặp hàng tuần</label>
             </div>
 
+            {{-- One-shot --}}
             <div id="oneoff" style="margin-top:8px">
                 <label>Ngày (one-shot)</label>
                 <input class="form-control" type="date" name="date">
             </div>
 
+            {{-- Weekly (multi-days) --}}
+            {{-- Weekly (multi-days + optional week range) --}}
             <div id="weekly" style="margin-top:8px;display:none">
-                <label>Thứ (WEEKDAY: Thứ 2=0 … Chủ nhật=6)</label>
-                <select class="form-control" name="weekday">
-                    <option value="">-- Chọn thứ --</option>
+                <label>Chọn các thứ (Thứ 2=0 … Chủ nhật=6)</label>
+                <div style="display:grid;grid-template-columns:repeat(7,minmax(80px,1fr));gap:8px">
                     @for($i=0;$i<=6;$i++)
-                        <option value="{{ $i }}">{{ ['T2','T3','T4','T5','T6','T7','CN'][$i] }}</option>
+                        <label style="display:flex;gap:6px;align-items:center;border:1px solid #e8eaf2;border-radius:8px;padding:6px 8px">
+                            <input type="checkbox" name="weekdays[]" value="{{ $i }}">
+                            <span>{{ ['T2','T3','T4','T5','T6','T7','CN'][$i] }}</span>
+                        </label>
                     @endfor
-                </select>
+                </div>
+
+                <div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                    <div>
+                        <label>Từ tuần (chọn 1 ngày trong tuần đầu)</label>
+                        <input class="form-control" type="date" name="week_start">
+                    </div>
+                    <div>
+                        <label>Đến tuần (chọn 1 ngày trong tuần cuối)</label>
+                        <input class="form-control" type="date" name="week_end">
+                    </div>
+                </div>
+                <div style="margin-top:6px;color:#667085;font-size:13px">
+                    • Nếu để trống “Từ/Đến tuần” → tạo lịch lặp vô thời hạn (1 bản ghi/thu).<br>
+                    • Nếu chọn “Từ/Đến tuần” → hệ thống sẽ tạo các lịch one-shot cho từng tuần trong khoảng.
+                </div>
             </div>
 
             <div style="margin-top:12px;display:flex;gap:10px">

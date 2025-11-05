@@ -1112,3 +1112,4 @@ WHERE c.name LIKE 'Lập trình Java'
 GROUP BY ats.id, ats.start_at, ats.end_at, ats.created_at,
     cs.id, cs.term, cs.room, c.code, c.name, s.start_time
 ORDER BY ats.created_at DESC
+SELECT id, faculty_id, faculty FROM students LIMIT 10;

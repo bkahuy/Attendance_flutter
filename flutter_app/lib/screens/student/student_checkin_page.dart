@@ -2,7 +2,6 @@ import 'dart:io';
 import 'dart:convert'; // 🎨 1. Thêm import để dùng Base64
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
 import '../../services/attendance_service.dart';
 
@@ -18,7 +17,6 @@ class StudentCheckinPage extends StatefulWidget {
 class _StudentCheckinPageState extends State<StudentCheckinPage> {
   String? status;
   String password = '';
-  Position? pos;
   bool sending = false;
 
   // 🎨 2. Sửa State
@@ -50,20 +48,6 @@ class _StudentCheckinPageState extends State<StudentCheckinPage> {
     });
   }
 
-  Future<void> _getLocation() async {
-    // (Hàm này giữ nguyên)
-    final enabled = await Geolocator.isLocationServiceEnabled();
-    if (!enabled) { await Geolocator.openLocationSettings(); return; }
-    LocationPermission perm = await Geolocator.checkPermission();
-    if (perm == LocationPermission.denied) perm = await Geolocator.requestPermission();
-    if (perm == LocationPermission.deniedForever || perm == LocationPermission.denied) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Không có quyền GPS')));
-      return;
-    }
-    final p = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
-    setState(() => pos = p);
-  }
-
   // 🎨 5. SỬA HÀM SUBMIT
   Future<void> _submit() async {
     if (status == null) {
@@ -89,8 +73,6 @@ class _StudentCheckinPageState extends State<StudentCheckinPage> {
       default: statusValue = 'present';
     }
 
-    await _getLocation();
-
     setState(() => sending = true);
     try {
       final dynamic sessionId = widget.session['session_id'];
@@ -105,8 +87,6 @@ class _StudentCheckinPageState extends State<StudentCheckinPage> {
         status: statusValue,
         templateBase64: _templateBase64!, // 👈 Gửi template
         password: password.isEmpty ? null : password,
-        lat: pos?.latitude,
-        lng: pos?.longitude,
       );
 
       if (!mounted) return;
