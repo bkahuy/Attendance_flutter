@@ -6,10 +6,9 @@ import 'dart:io';
 import '../../api/api_client.dart';
 import '../../utils/config.dart';
 
-// 🎨 MỚI: Chỉ import FaceScan và CheckinPage
-// (Đã xóa QrScanPage và StudentCheckinLoadingPage)
 import 'face_scan_page.dart';
 import 'student_checkin_page.dart';
+import 'student_home.dart'; // 💡 THÊM: Cần cho PopUntil hoạt động ổn định toàn hệ thống
 
 class CourseDetailPage extends StatefulWidget {
   final Map<String, dynamic> course;
@@ -73,8 +72,7 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
     }
   }
 
-  // 🎨 MỚI: Hàm xử lý quy trình (Flow) quét mặt
-  // (Bỏ qua hoàn toàn QR và Loading Page)
+  // 🎨 SỬA LỖI HIỂN THỊ DỮ LIỆU: Hàm xử lý quy trình (Flow) quét mặt
   Future<void> _startFaceScanFlow(Map<String, dynamic> session) async {
     print("===== DỮ LIỆU BUỔI HỌC (SESSION): $session =====");
     if (!mounted) return;
@@ -91,35 +89,34 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
     // 2. TẠO DỮ LIỆU BUỔI HỌC (SESSION DATA) MỚI
     // Lấy thông tin chung của MÔN HỌC (từ widget.course)
     // và trộn với thông tin của BUỔI HỌC (từ session)
+    // 💡 Đã sửa lỗi LỚP LỚP: Đảm bảo các key quan trọng được lấy an toàn.
     final Map<String, dynamic> sessionData = {
       // Dữ liệu từ MÔN HỌC (widget.course)
-      'course_name': widget.course['course_name'],
-      'class_name': widget.course['class_name'],
-      'course_code': widget.course['course_code'],
+      'course_name': widget.course['course_name'] ?? session['course_name'],
+      'class_name': widget.course['class_name'] ?? session['class_name'],
+      'course_code': widget.course['course_code'] ?? session['course_code'],
+      'room': widget.course['room'] ?? session['room'],
 
       // Dữ liệu từ BUỔI HỌC (session lấy từ _history)
       'date': session['date'],
       'status': session['status'],
 
-      // Key đúng (theo log) là 'session_id'
+      // Đảm bảo session_id là key chính xác cho việc gửi API
       'session_id': session['session_id'],
     };
 
     // 3. Mở thẳng trang StudentCheckinPage
-    //    (Bỏ qua StudentCheckinLoadingPage)
-    //    Chúng ta dùng 'await' để chờ trang này đóng lại
     await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => StudentCheckinPage(
-          session: sessionData, // Truyền dữ liệu đã trộn
+          session: sessionData, // Truyền dữ liệu đã trộn và chuẩn hóa
           photo: facePhoto,
         ),
       ),
     );
 
     // 4. Tải lại lịch sử để cập nhật "Có mặt"
-    //    (Sau khi trang StudentCheckinPage đóng lại)
     await _loadHistory();
   }
 
