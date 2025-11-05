@@ -173,6 +173,37 @@
         @media (max-width: 640px){
             .input-icon{ max-width:100%; }
         }
+        /* ===== FIX PAGINATION BỊ PHÓNG TO ===== */
+        nav[role="navigation"]{
+            display:flex; align-items:center; gap:10px; margin-top:8px;
+            font-size:14px; line-height:1.2;
+        }
+
+        /* Clamp kích thước icon chevron (nếu có SVG) */
+        nav[role="navigation"] svg{
+            width:16px; height:16px; display:inline-block; vertical-align:-2px;
+            flex:0 0 16px;
+        }
+
+        /* Chuẩn hóa link/span trong pagination */
+        nav[role="navigation"] a,
+        nav[role="navigation"] span{
+            display:inline-flex; align-items:center; gap:6px;
+            padding:6px 10px; border:1px solid #e5e7eb; border-radius:8px;
+            background:#fff; color:#111; text-decoration:none;
+        }
+
+        /* Trang hiện tại */
+        nav[role="navigation"] span[aria-current="page"]{
+            border-color: var(--brand); color:#fff; background: var(--brand);
+        }
+
+        /* Ẩn các span trợ năng “hidden” mặc định của template tailwind */
+        nav[role="navigation"] .hidden{ display:none !important; }
+
+        /* Nếu dùng kiểu simple (Previous/Next) – bỏ padding quá tay */
+        nav[role="navigation"] > div > span,
+        nav[role="navigation"] > div > a{ padding:6px 10px; }
 
     </style>
 
