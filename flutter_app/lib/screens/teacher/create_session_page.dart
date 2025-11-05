@@ -118,7 +118,6 @@ class _CreateSessionPageState extends State<CreateSessionPage> {
   }
 
 
-  // (Hàm _createSession giữ nguyên, chỉ đổi tên _loading)
   Future<void> _createSession() async {
     if (_startTime == null || _endTime == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -353,7 +352,7 @@ class _CreateSessionPageState extends State<CreateSessionPage> {
                 });
               },
               child: const Text(
-                '...hoặc tạo một phiên mới (ghi đè phiên cũ)',
+                '...hoặc tạo một phiên mới',
                 style: TextStyle(color: Colors.deepPurpleAccent),
               ),
             ),

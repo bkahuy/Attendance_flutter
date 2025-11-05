@@ -1111,4 +1111,70 @@ WHERE c.name LIKE 'Lập trình Java'
 GROUP BY ats.id, ats.start_at, ats.end_at, ats.created_at,
     cs.id, cs.term, cs.room, c.code, c.name, s.start_time
 ORDER BY ats.created_at DESC
-SELECT id, faculty_id, faculty FROM students LIMIT 10;
+
+
+
+
+
+SELECT
+    u.name AS student_name,
+    s.student_code,
+    s.id AS student_id,
+    a_sess.id AS attendance_session_id,
+    ar.created_at AS check_in_time,
+    ar.status AS attendance_status
+FROM
+    class_section_students css
+JOIN
+    students s ON css.student_id = s.id
+JOIN
+    users u ON s.user_id = u.id
+JOIN
+    -- Nối với TẤT CẢ các buổi điểm danh của lớp học phần đó
+    attendance_sessions a_sess ON a_sess.class_section_id = css.class_section_id
+LEFT JOIN
+    -- Lấy bản ghi điểm danh,
+    -- nối với cả student_id VÀ attendance_session_id
+    attendance_records ar ON ar.student_id = s.id
+                         AND ar.attendance_session_id = a_sess.id
+WHERE
+    -- Lọc đúng lớp học phần
+    css.class_section_id = 1
+ORDER BY
+    u.name
+    
+    
+
+
+SELECT
+  a_sess.id,
+  a_sess.start_at,
+  a_sess.end_at,
+  a_sess.status AS session_status,
+  c.name AS course_name,
+  cs.id AS class_section_id
+FROM
+  attendance_sessions AS a_sess
+  JOIN class_sections AS cs ON a_sess.class_section_id = cs.id
+  JOIN courses AS c ON cs.course_id = c.id
+WHERE
+  a_sess.id = 8 -- <-- THAY ? BẰNG ID BUỔI HỌC (attendance_session_id)
+LIMIT
+  1;
+  
+  
+SELECT
+  s.id AS student_id,
+  u.name AS student_name,
+  s.student_code,
+  COALESCE(ar.status, 'absent') AS status
+FROM
+  class_section_students AS css
+  JOIN students AS s ON css.student_id = s.id
+  JOIN users AS u ON s.user_id = u.id
+  LEFT JOIN attendance_records AS ar ON ar.student_id = s.id
+  AND ar.attendance_session_id = 8 -- <-- THAY ? BẰNG ID BUỔI HỌC (giống câu 1)
+WHERE
+  css.class_section_id = 1 -- <-- THAY ? BẰNG class_section_id (từ kết quả câu 1)
+ORDER BY
+  u.name;

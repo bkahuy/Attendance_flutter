@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import '../../services/attendance_service.dart';
+import 'student_home.dart';
 
 class StudentCheckinPage extends StatefulWidget {
   final Map<String, dynamic> session;
@@ -70,7 +71,7 @@ class _StudentCheckinPageState extends State<StudentCheckinPage> {
       case 'Có mặt': statusValue = 'present'; break;
       case 'Muộn': statusValue = 'late'; break;
       case 'Vắng': statusValue = 'absent'; break;
-      default: statusValue = 'present';
+      default: statusValue = 'absent';
     }
 
     setState(() => sending = true);
@@ -94,16 +95,22 @@ class _StudentCheckinPageState extends State<StudentCheckinPage> {
         const SnackBar(content: Text('Điểm danh thành công!')),
       );
 
-      // 5c. Pop 2 lần để quay về trang Home/CourseDetail
-      // (Đóng trang Checkin và trang Loading)
-      int popCount = 0;
-      Navigator.of(context).popUntil((_) => popCount++ >= 2);
+      // 💡 SỬA LỖI ĐIỀU HƯỚNG: Pop an toàn bằng cách kiểm tra kiểu Widget.
+      Navigator.of(context).popUntil(
+              (route) {
+            // 1. Nếu route là Route đầu tiên (root), dừng lại.
+            if (route.isFirst) return true;
+
+            // 2. Kiểm tra xem Route có đang build Widget StudentHome hay không.
+            if (route is MaterialPageRoute) {
+              return route.builder(context).runtimeType == StudentHome;
+            }
+            return false;
+          }
+      );
 
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Lỗi điểm danh: $e')),
-      );
+// ... (xử lý lỗi)
     } finally {
       if (mounted) setState(() => sending = false);
     }
@@ -131,9 +138,22 @@ class _StudentCheckinPageState extends State<StudentCheckinPage> {
 
   @override
   Widget build(BuildContext context) {
+
+
     final s = widget.session;
-    final className = s['class_name'] ?? 'Lớp';
-    final courseName = s['course_name'] ?? 'Tên môn học';
+
+
+    final classSection = (s['class_section'] is Map<String, dynamic>)
+        ? s['class_section'] as Map<String, dynamic>
+        : <String, dynamic>{}; // Map rỗng
+    final courseName = classSection['course'] ?? '--'; // Key đúng là 'course'
+
+// 3. Xử lý "className"
+//    API của bạn KHÔNG trả về 'class_name'.
+//    Có thể bạn muốn hiển thị 'term' (học kỳ) hoặc 'room' (phòng học)?
+    final className = classSection['class_name'] ?? '--';
+// hoặc
+    final room = classSection['room'] ?? '--'; // 👈 TẠM DÙNG 'room'
 
     final sessionDate = DateTime.tryParse(s['date'] ?? '') ?? DateTime.now();
     final formattedDate = DateFormat("E dd/MM/yyyy", "vi_VN").format(sessionDate);
@@ -179,6 +199,11 @@ class _StudentCheckinPageState extends State<StudentCheckinPage> {
                 const SizedBox(height: 8),
                 Text(
                   courseName,
+                  style: TextStyle(fontSize: 16, color: Colors.grey[800]),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  room,
                   style: TextStyle(fontSize: 16, color: Colors.grey[800]),
                 ),
                 const SizedBox(height: 16),

@@ -1,6 +1,7 @@
 // detail_page.dart
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
+import 'package:provider/provider.dart';
 import '../../services/attendance_service.dart';
 import '../../models/session_detail.dart';
 import '../../models/student.dart'; // Đảm bảo import này đúng
@@ -20,6 +21,13 @@ class DetailPage extends StatefulWidget {
 }
 
 class _DetailPageState extends State<DetailPage> {
+
+  String formatDuration(int seconds) {
+    final minutes = seconds ~/ 60;
+    final sec = seconds % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${sec.toString().padLeft(2, '0')}';
+  }
+
   // Trạng thái lọc
   String _selectedFilter = 'Tất cả';
 
@@ -37,6 +45,7 @@ class _DetailPageState extends State<DetailPage> {
     super.initState();
     print("Mở DetailPage với sessionId: ${widget.sessionId}");
     _loadSessionDetail();
+
   }
 
   Future<void> _loadSessionDetail() async {

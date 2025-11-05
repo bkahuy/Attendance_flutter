@@ -10,7 +10,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 class StudentClass extends Model
 {
     protected $table = 'classes';
-
     protected $fillable = ['name', 'major_id'];
 
     public function major(): BelongsTo
