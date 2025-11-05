@@ -249,7 +249,6 @@ FROM
 -- ========================================
 -- STORED PROCEDURE
 -- ========================================
-//tida
 DROP PROCEDURE IF EXISTS sp_teacher_daily_schedule;
 DELIMITER $$
 CREATE OR REPLACE PROCEDURE sp_teacher_daily_schedule(
@@ -917,10 +916,7 @@ INSERT INTO class_section_students (class_section_id, student_id) VALUES
 (48, 116), (48, 117), (48, 118), (48, 119), (48, 120);
 
 
-INSERT INTO schedules (class_section_id, date, weekday, start_time, end_time, recurring_flag, location_lat, location_lng) VALUES
-(1, '2025-11-03', 0, '05:40:00', '06:50:00', 1, NULL, NULL)
 
-DELETE FROM attendance_sessions
 
 INSERT INTO schedules (class_section_id, weekday, start_time, end_time, recurring_flag, location_lat, location_lng) VALUES
 -- Giảng viên 2 (Dạy 1, 3, 5, 7, 9, 11) & Giảng viên 3 (Dạy 2, 4, 6, 8, 10, 12)
@@ -1048,7 +1044,7 @@ CREATE TABLE face_templates_simple (
   version VARCHAR(64) DEFAULT 'mfn-1.0',
   is_primary TINYINT(1) DEFAULT 1,
   created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON Uvw_teacher_schedulePDATE CURRENT_TIMESTAMP
+  updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
 ALTER TABLE students ADD COLUMN face_enrolled TINYINT(1) DEFAULT 0;
@@ -1148,3 +1144,37 @@ ORDER BY
     u.name
     
     
+
+
+SELECT
+  a_sess.id,
+  a_sess.start_at,
+  a_sess.end_at,
+  a_sess.status AS session_status,
+  c.name AS course_name,
+  cs.id AS class_section_id
+FROM
+  attendance_sessions AS a_sess
+  JOIN class_sections AS cs ON a_sess.class_section_id = cs.id
+  JOIN courses AS c ON cs.course_id = c.id
+WHERE
+  a_sess.id = 8 -- <-- THAY ? BẰNG ID BUỔI HỌC (attendance_session_id)
+LIMIT
+  1;
+  
+  
+SELECT
+  s.id AS student_id,
+  u.name AS student_name,
+  s.student_code,
+  COALESCE(ar.status, 'absent') AS status
+FROM
+  class_section_students AS css
+  JOIN students AS s ON css.student_id = s.id
+  JOIN users AS u ON s.user_id = u.id
+  LEFT JOIN attendance_records AS ar ON ar.student_id = s.id
+  AND ar.attendance_session_id = 8 -- <-- THAY ? BẰNG ID BUỔI HỌC (giống câu 1)
+WHERE
+  css.class_section_id = 1 -- <-- THAY ? BẰNG class_section_id (từ kết quả câu 1)
+ORDER BY
+  u.name;

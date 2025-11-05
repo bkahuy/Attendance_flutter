@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class StudentClass extends Model
 {
+    protected $table = 'classes';
     protected $fillable = ['name', 'major_id'];
 
     public function major(): BelongsTo
@@ -23,7 +24,11 @@ class StudentClass extends Model
 
     public function classSections(): BelongsToMany
     {
-        return $this->belongsToMany(ClassSection::class, 'class_section_classes', 'class_id', 'class_section_id')
-            ->withPivot('assigned_at');
+        return $this->belongsToMany(
+            ClassSection::class,
+            'class_section_classes',
+            'class_id',
+            'class_section_id'
+        )->withPivot('assigned_at');
     }
 }

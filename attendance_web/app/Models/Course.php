@@ -12,6 +12,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Course extends Model
 {
     protected $fillable = ['code','name','credits','department_id'];
-    public function department(): BelongsTo { return $this->belongsTo(Department::class); }
+    public function department(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\Department::class);
+    }
     public function classSections(): HasMany { return $this->hasMany(ClassSection::class); }
 }

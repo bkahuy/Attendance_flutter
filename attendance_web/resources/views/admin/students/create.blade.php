@@ -3,43 +3,76 @@
 
 @section('content')
     <div class="section-title"><h2>Thêm sinh viên</h2></div>
-    <div class="card" style="max-width:720px">
-        <form method="post" action="{{ route('admin.students.store') }}">
-            @csrf
+
+    @if ($errors->any())
+        <div class="flash" style="background:#fef2f2;color:#991b1b;border-color:#fecaca">
+            {{ $errors->first() }}
+        </div>
+    @endif
+
+    <form method="post" action="{{ route('admin.students.store') }}" class="card" style="display:grid;gap:12px">
+        @csrf
+
+        <div>
             <label>Họ tên</label>
-            <input class="form-control" name="name" value="{{ old('name') }}" required>
+            <input name="name" class="form-control" value="{{ old('name') }}" required>
+        </div>
 
-            <label style="margin-top:8px">Email</label>
-            <input class="form-control" type="email" name="email" value="{{ old('email') }}" required>
+        <div>
+            <label>Email</label>
+            <input name="email" type="email" class="form-control" value="{{ old('email') }}" required>
+        </div>
 
-            <label style="margin-top:8px">MSSV</label>
-            <input class="form-control" name="student_code" value="{{ old('student_code') }}" required>
+        <div>
+            <label>Số điện thoại</label>
+            <input name="phone" class="form-control" value="{{ old('phone') }}" placeholder="VD: 09xxxxxxxx">
+        </div>
 
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px">
-                <div>
-                    <label>Lớp</label>
-                    <select class="form-control" name="class_name">
-                        <option value="">-- Chọn lớp --</option>
-                        @foreach($classes as $c)
-                            <option value="{{ $c }}" @selected(old('class_name')==$c)>{{ $c }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label>Khoa</label>
-                    <select class="form-control" name="faculty">
-                        <option value="">-- Chọn khoa --</option>
-                        @foreach($faculties as $f)
-                            <option value="{{ $f }}" @selected(old('faculty')==$f)>{{ $f }}</option>
-                        @endforeach
-                    </select>
-                </div>
-            </div>
+        <div>
+            <label>MSSV</label>
+            <input name="student_code" class="form-control" value="{{ old('student_code') }}" required>
+        </div>
 
-            <div style="margin-top:12px;display:flex;gap:10px">
-                <a class="btn btn-outline" href="{{ route('admin.students.index') }}">Huỷ</a>
-                <button class="btn">Lưu</button>
-            </div>
-        </form>
-    </div>
+        <div>
+            <label>Lớp</label>
+            @php $selected = old('class_id'); @endphp
+            <select name="class_id" id="class_id" class="form-control">
+                <option value="">— Chọn lớp —</option>
+                @foreach($classes as $c)
+                    @php
+                        $optId      = $c->id;
+                        $optName    = $c->name;
+                        $optFaculty = $c->major->faculty->name ?? '';
+                    @endphp
+                    <option value="{{ $optId }}"
+                            data-faculty="{{ $optFaculty }}"
+                        {{ (string)$selected === (string)$optId ? 'selected' : '' }}>
+                        {{ $optName }} @if($optFaculty) — {{ $optFaculty }} @endif
+                    </option>
+                @endforeach
+            </select>
+
+            <input id="faculty_display" class="form-control" value="" disabled>
+        </div>
+
+        <div>
+            <button class="btn">Lưu</button>
+            <a class="btn btn-outline" href="{{ route('admin.students.index') }}">Huỷ</a>
+        </div>
+    </form>
+
+    @push('scripts')
+        <script>
+            document.addEventListener('DOMContentLoaded', function(){
+                var sel = document.getElementById('class_id');
+                var out = document.getElementById('faculty_display');
+                function syncFaculty(){
+                    var opt = sel.options[sel.selectedIndex];
+                    out.value = opt ? (opt.getAttribute('data-faculty') || '') : '';
+                }
+                sel.addEventListener('change', syncFaculty);
+                syncFaculty();
+            });
+        </script>
+    @endpush
 @endsection
