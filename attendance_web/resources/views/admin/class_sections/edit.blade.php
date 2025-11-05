@@ -37,34 +37,19 @@
                     </select>
                 </div>
                 <div>
-                    <label>Kì học</label>
-                    <input class="form-control" name="term" value="{{ old('term',$section->term) }}">
+                    <label>Kỳ học</label>
+                    <select class="form-control" name="term">
+                        <option value="">-- Chưa đặt --</option>
+                        @foreach($termOptions as $t)
+                            <option value="{{ $t }}" @selected(old('term',$section->term)==$t)>{{ $t }}</option>
+                        @endforeach
+                    </select>
                 </div>
                 <div>
                     <label>Phòng</label>
                     <input class="form-control" name="room" value="{{ old('room',$section->room) }}">
                 </div>
-            </div>
-
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px">
-                <div>
-                    <label>Sĩ số</label>
-                    <input class="form-control" type="number" min="1" max="500" name="capacity" value="{{ old('capacity',$section->capacity) }}">
-                </div>
-                <div>
-                    <label>Ngày bắt đầu</label>
-                    <input class="form-control" type="date" name="start_date" value="{{ old('start_date',$section->start_date) }}">
-                </div>
-                <div>
-                    <label>Ngày kết thúc</label>
-                    <input class="form-control" type="date" name="end_date" value="{{ old('end_date',$section->end_date) }}">
-                </div>
-            </div>
-
-            <div style="margin-top:12px;display:flex;gap:10px">
-                <a class="btn btn-outline" href="{{ route('admin.class-sections.index') }}">Quay lại</a>
-                <button class="btn">Lưu</button>
-            </div>
-        </form>
-    @endcomponent
+                <div class="mt-3"><button class="btn btn-primary">Lưu</button></div>
+            </form>
+        </div></div>
 @endsection

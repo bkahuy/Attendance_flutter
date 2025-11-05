@@ -22,7 +22,7 @@ class Major extends Model
 
     public function classes(): HasMany
     {
-        return $this->hasMany(\App\Models\StudentClass::class);
+        return $this->hasMany(StudentClass::class, 'major_id');
     }
 
     public function classSections(): HasMany

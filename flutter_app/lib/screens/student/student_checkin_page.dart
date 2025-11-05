@@ -48,8 +48,6 @@ class _StudentCheckinPageState extends State<StudentCheckinPage> {
     });
   }
 
-
-
   // 🎨 5. SỬA HÀM SUBMIT
   Future<void> _submit() async {
     if (status == null) {
@@ -89,7 +87,6 @@ class _StudentCheckinPageState extends State<StudentCheckinPage> {
         status: statusValue,
         templateBase64: _templateBase64!, // 👈 Gửi template
         password: password.isEmpty ? null : password,
-
       );
 
       if (!mounted) return;
