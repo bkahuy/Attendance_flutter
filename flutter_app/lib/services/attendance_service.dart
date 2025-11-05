@@ -55,20 +55,16 @@ class AttendanceService {
     required String status,
     required String templateBase64, // 👈 Đổi từ File sang String
     String? password,
-    double? lat,
-    double? lng,
   }) async {
     try {
       // 1. 🎨 Gửi JSON (thay vì FormData)
       await _dio.post(
-        AppConfig.studentCheckinPath, // 👈 Đảm bảo bạn có AppConfig.studentCheckinPath
+        AppConfig.studentCheckinPath,
         data: {
           'attendance_session_id': sessionId,
           'status': status,
           'template_base64': templateBase64, // 👈 Gửi template
           'password': password,
-          'gps_lat': lat,
-          'gps_lng': lng,
         },
       );
     } on DioException catch (e) {

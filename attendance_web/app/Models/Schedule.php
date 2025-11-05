@@ -19,9 +19,5 @@ class Schedule extends Model
         'location_lat' => 'float',
         'location_lng' => 'float',
     ];
-
-    public function classSection(): BelongsTo
-    {
-        return $this->belongsTo(ClassSection::class);
-    }
+    public function classSection(): BelongsTo { return $this->belongsTo(ClassSection::class, 'class_section_id'); }
 }
