@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\{Course, Department};
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class CoursesWebController extends Controller
 {

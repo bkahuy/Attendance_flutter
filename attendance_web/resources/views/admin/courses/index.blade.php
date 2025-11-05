@@ -59,3 +59,4 @@
         {{ $courses->onEachSide(1)->withQueryString()->links() }}
     @endcomponent
 @endsection
+

@@ -28,43 +28,70 @@ class StudentController extends Controller
         $carbonWeekday = $carbonDate->dayOfWeek;
         $weekday = ($carbonWeekday === 0) ? 6 : $carbonWeekday - 1;
 
-        // 3. Query thẳng vào VIEW 'vw_student_schedule' (PHẦN THAY THẾ)
-        $schedules = DB::table('vw_student_schedule')
-            ->where('student_id', $student->id)
-            ->where('weekday', $weekday)
-            ->whereDate('start_date', '<=', $date)
-            ->whereDate('end_date', '>=', $date)
-            ->orderBy('start_time')
-            ->get();
+        // 3. Thực thi truy vấn SQL
+        $sql = "
+            SELECT
+                sc.class_section_id,
+                sc.course_code,
+                sc.course_name,
+                sc.room,
+                sc.start_time,
+                sc.end_time,
+                GROUP_CONCAT(DISTINCT c.name SEPARATOR ', ') AS class_names
+            FROM
+                vw_student_schedule sc
+            LEFT JOIN class_section_classes csc ON csc.class_section_id = sc.class_section_id
+            LEFT JOIN classes c ON c.id = csc.class_id
+            WHERE
+                sc.student_id = ?
+                AND sc.weekday = ?
+                AND sc.start_date <= ?
+                AND sc.end_date >= ?
+            GROUP BY
+                sc.class_section_id, sc.course_code, sc.course_name, sc.room, sc.start_time, sc.end_time
+            ORDER BY
+                sc.start_time;
+        ";
 
-        // 4. Biến đổi dữ liệu (vẫn cần làm để ghép ngày + giờ)
-        $formattedSchedules = $schedules->map(function ($schedule) use ($carbonDate) {
+        $schedules = DB::select($sql, [
+            $student->id,
+            $weekday,
+            $date,
+            $date
+        ]);
 
-            $dbTime = Carbon::parse($schedule->start_time);
-            $startTime = $carbonDate->copy()->setTime(
-                $dbTime->hour,
-                $dbTime->minute,
-                $dbTime->second
-            );
-            $dbEndTime = Carbon::parse($schedule->end_time);
-            $endTime = $carbonDate->copy()->setTime(
-                $dbEndTime->hour,
-                $dbEndTime->minute,
-                $dbEndTime->second
-            );
+        // 4. Biến đổi dữ liệu (mapping) - FIX LỆCH GIỜ
+        $formattedSchedules = collect($schedules)->map(function ($schedule) use ($carbonDate) {
+
+            // Lấy chuỗi ngày và giờ thuần
+            $dateTimeString = $carbonDate->toDateString() . ' ' . $schedule->start_time;
+            $endDateTimeString = $carbonDate->toDateString() . ' ' . $schedule->end_time;
+
+            // 🐛 FIX CUỐI CÙNG: Dùng createFromFormat để ép múi giờ NGUỒN là UTC (Giả định của CSDL)
+            // Sau đó, chuyển nó sang múi giờ ĐÍCH (VN).
+
+            // Đối tượng Carbon (tạm thời) dựa trên chuỗi ngày/giờ:
+            $tempStart = Carbon::createFromFormat('Y-m-d H:i:s', $dateTimeString, 'UTC');
+            $tempEnd = Carbon::createFromFormat('Y-m-d H:i:s', $endDateTimeString, 'UTC');
+
+            // Chuyển đối tượng từ UTC sang múi giờ App (VN)
+            $startDateTime = $tempStart->setTimezone(config('app.timezone'));
+            $endDateTime = $tempEnd->setTimezone(config('app.timezone'));
+
 
             return [
                 'class_section_id' => $schedule->class_section_id,
                 'course_code' => $schedule->course_code,
                 'course_name' => $schedule->course_name,
-                'class_name'  => $schedule->course_code,
+                'class_name'  => $schedule->class_names ?? $schedule->course_code,
                 'room'        => $schedule->room,
-                'start_time'  => $startTime->toIso8601String(),
-                'end_time'    => $endTime->toIso8601String(),
+
+                // 🐛 TRẢ VỀ ISO8601 STRING: Flutter sẽ nhận 08:00:00+07:00
+                'start_time'  => $startDateTime->toIso8601String(),
+                'end_time'    => $endDateTime->toIso8601String(),
             ];
         });
 
-        // 5. Trả về JSON (giữ nguyên)
         return response()->json([
             'success' => true,
             'data' => $formattedSchedules,
@@ -102,9 +129,7 @@ class StudentController extends Controller
             }
         }
 
-        // 3. 🎨 THAY THẾ LOGIC "GIẢ LẬP"
-
-        // 3a. Lấy template ĐÃ LƯU
+        // 3. LOGIC SO SÁNH KHUÔN MẶT
         $savedTemplate = DB::table('face_templates_simple')
             ->where('student_id', $student->id)
             ->orderBy('created_at', 'desc')
@@ -114,19 +139,15 @@ class StudentController extends Controller
             return response()->json(['error' => 'Khuôn mặt của bạn chưa được đăng ký.'], 404);
         }
 
-        // 3b. Lấy template MỚI
         $newTemplateBase64 = $data['template_base64'];
-
-        // 3c. 🎨 GỌI API SO SÁNH (THAY VÌ $isMatch = true)
-
-        // ‼️ Đổi IP này thành địa chỉ server Python của bạn
         $aiServiceUrl = 'http://127.0.0.1:5001/match-faces';
-        $isMatch = false; // Mặc định là KHÔNG KHỚP
+        $isMatch = false;
+        $aiError = 'Khuôn mặt không khớp. Vui lòng thử lại.';
 
         try {
             $response = Http::post($aiServiceUrl, [
-                'template1_base64' => $savedTemplate->template, // Lấy từ DB
-                'template2_base64' => $newTemplateBase64,      // Lấy từ App
+                'template1_base64' => $savedTemplate->template,
+                'template2_base64' => $newTemplateBase64,
             ]);
 
             // Kiểm tra xem AI service có chạy thành công VÀ có khớp không
