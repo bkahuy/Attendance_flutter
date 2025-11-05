@@ -249,7 +249,6 @@ FROM
 -- ========================================
 -- STORED PROCEDURE
 -- ========================================
-//tida
 DROP PROCEDURE IF EXISTS sp_teacher_daily_schedule;
 DELIMITER $$
 CREATE OR REPLACE PROCEDURE sp_teacher_daily_schedule(
@@ -917,10 +916,7 @@ INSERT INTO class_section_students (class_section_id, student_id) VALUES
 (48, 116), (48, 117), (48, 118), (48, 119), (48, 120);
 
 
-INSERT INTO schedules (class_section_id, date, weekday, start_time, end_time, recurring_flag, location_lat, location_lng) VALUES
-(1, '2025-11-03', 0, '21:00:00', '23:59:00', 0, NULL, NULL)
 
-DELETE FROM attendance_sessions
 
 INSERT INTO schedules (class_section_id, weekday, start_time, end_time, recurring_flag, location_lat, location_lng) VALUES
 -- Giảng viên 2 (Dạy 1, 3, 5, 7, 9, 11) & Giảng viên 3 (Dạy 2, 4, 6, 8, 10, 12)
@@ -1048,7 +1044,7 @@ CREATE TABLE face_templates_simple (
   version VARCHAR(64) DEFAULT 'mfn-1.0',
   is_primary TINYINT(1) DEFAULT 1,
   created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON Uvw_teacher_schedulePDATE CURRENT_TIMESTAMP
+  updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
 ALTER TABLE students ADD COLUMN face_enrolled TINYINT(1) DEFAULT 0;
