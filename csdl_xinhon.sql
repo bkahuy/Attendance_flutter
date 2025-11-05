@@ -918,7 +918,7 @@ INSERT INTO class_section_students (class_section_id, student_id) VALUES
 
 
 INSERT INTO schedules (class_section_id, date, weekday, start_time, end_time, recurring_flag, location_lat, location_lng) VALUES
-(1, '2025-11-03', 0, '05:40:00', '06:50:00', 1, NULL, NULL)
+(1, '2025-11-03', 0, '21:00:00', '23:59:00', 0, NULL, NULL)
 
 DELETE FROM attendance_sessions
 
@@ -1148,3 +1148,37 @@ ORDER BY
     u.name
     
     
+
+
+SELECT
+  a_sess.id,
+  a_sess.start_at,
+  a_sess.end_at,
+  a_sess.status AS session_status,
+  c.name AS course_name,
+  cs.id AS class_section_id
+FROM
+  attendance_sessions AS a_sess
+  JOIN class_sections AS cs ON a_sess.class_section_id = cs.id
+  JOIN courses AS c ON cs.course_id = c.id
+WHERE
+  a_sess.id = 8 -- <-- THAY ? BẰNG ID BUỔI HỌC (attendance_session_id)
+LIMIT
+  1;
+  
+  
+SELECT
+  s.id AS student_id,
+  u.name AS student_name,
+  s.student_code,
+  COALESCE(ar.status, 'absent') AS status
+FROM
+  class_section_students AS css
+  JOIN students AS s ON css.student_id = s.id
+  JOIN users AS u ON s.user_id = u.id
+  LEFT JOIN attendance_records AS ar ON ar.student_id = s.id
+  AND ar.attendance_session_id = 8 -- <-- THAY ? BẰNG ID BUỔI HỌC (giống câu 1)
+WHERE
+  css.class_section_id = 1 -- <-- THAY ? BẰNG class_section_id (từ kết quả câu 1)
+ORDER BY
+  u.name;

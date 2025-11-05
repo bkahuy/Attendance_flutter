@@ -108,8 +108,6 @@ class StudentController extends Controller
             'attendance_session_id' => 'required|exists:attendance_sessions,id',
             'status' => 'required|in:present,late,absent',
             'template_base64' => 'required|string',
-            'gps_lat' => 'nullable|numeric',
-            'gps_lng' => 'nullable|numeric',
             'password' => 'nullable|string',
         ]);
 
@@ -118,9 +116,9 @@ class StudentController extends Controller
         $session = AttendanceSession::findOrFail($data['attendance_session_id']);
 
         // 2. Tạm thời vô hiệu hóa kiểm tra thời gian (nếu bạn vẫn đang test)
-        // if (now()->lt($session->start_at) || now()->gt($session->end_at)) {
-        //     return response()->json(['error' => 'Session is not active'], 400);
-        // }
+         if (now()->lt($session->start_at) || now()->gt($session->end_at)) {
+             return response()->json(['error' => 'Session is not active'], 400);
+         }
 
         $flags = $session->mode_flags ?? [];
         if (!empty($flags['password']) && $session->password_hash) {
@@ -175,8 +173,6 @@ class StudentController extends Controller
             [
                 'status' => $data['status'],
                 'photo_path' => null, // 👈 Không lưu ảnh nữa
-                'gps_lat' => $data['gps_lat'] ?? null,
-                'gps_lng' => $data['gps_lng'] ?? null,
                 'created_at' => now(),
             ]
         );

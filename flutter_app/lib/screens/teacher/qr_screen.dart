@@ -143,7 +143,7 @@ class _ShowQrPageState extends State<ShowQrPage> {
     }
   }
 
-  void _updateRemainingTime() {
+  Future<void> _updateRemainingTime() async {
     // Nếu không có thời gian, dừng lại
     if (_startTime == null || _endTime == null || _startTime!.isAfter(_endTime!)) {
       _timer?.cancel();
@@ -194,6 +194,9 @@ class _ShowQrPageState extends State<ShowQrPage> {
         _statusMessage = "Thời gian còn lại:";
         remainingSeconds = diff > 0 ? diff : 0;
       });
+    }
+    if (remainingSeconds == 0){
+      _closeSession();
     }
   }
 
@@ -284,7 +287,7 @@ class _ShowQrPageState extends State<ShowQrPage> {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Phiên điểm danh đã kết thúc')),
                     );
-                    await _closeSession();
+                    _closeSession();
 
                     final prefs = await SharedPreferences.getInstance();
                     final user = AppUser(

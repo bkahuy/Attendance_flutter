@@ -92,9 +92,8 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
     // Lấy thông tin chung của MÔN HỌC (từ widget.course)
     // và trộn với thông tin của BUỔI HỌC (từ session)
     final Map<String, dynamic> sessionData = {
-      // Dữ liệu từ MÔN HỌC (widget.course)
       'course_name': widget.course['course_name'],
-      'class_name': widget.course['class_name'],
+      'class_name': widget.course['class_names'],
       'course_code': widget.course['course_code'],
 
       // Dữ liệu từ BUỔI HỌC (session lấy từ _history)

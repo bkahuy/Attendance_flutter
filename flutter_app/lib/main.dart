@@ -4,11 +4,6 @@ import 'package:provider/provider.dart';
 import 'api/api_client.dart';
 import 'screens/login_page.dart';
 import 'services/auth_service.dart';
-
-import 'face_recog/enroll_screen.dart';
-import 'face_recog/recognize_screen.dart';
-import 'face_recog/test_gallery.dart';        // <-- THÊM IMPORT NÀY
-
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'dart:developer' as developer;
@@ -30,8 +25,13 @@ class App extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Provider<AuthService>(
-      create: (_) => AuthService(),
+    return MultiProvider(
+      providers: [
+        Provider<AuthService>(
+          create: (_) => AuthService(),
+        ),
+
+      ],
       child: MaterialApp(
         title: 'Attendance',
         locale: const Locale('vi', 'VN'),
@@ -52,18 +52,7 @@ class App extends StatelessWidget {
         home: const LoginPage(),
         routes: {
           '/login': (_) => const LoginPage(),
-          // ↓↓↓ thêm 2 route mới ↓↓↓
-          '/face/recognize': (_) => const RecognizeScreen(),
-        },
-        // với enroll cần truyền studentId động, dùng onGenerateRoute
-        onGenerateRoute: (settings) {
-          if (settings.name == '/face/enroll') {
-            final int studentId = settings.arguments as int;
-            return MaterialPageRoute(
-              builder: (_) => EnrollScreen(studentId: studentId),
-            );
-          }
-          return null;
+
         },
       ),
     );

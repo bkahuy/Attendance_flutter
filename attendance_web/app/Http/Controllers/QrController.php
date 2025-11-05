@@ -28,14 +28,12 @@ class QrController extends Controller
         }
 
         // ✅ Lấy thông tin phiên điểm danh
-        $session = AttendanceSession::with('classSection.course')->find($qr->attendance_session_id);
+        $session = AttendanceSession::with('classSection.course', 'classSection.classes')->find($qr->attendance_session_id);
 
         if (!$session) {
             return response()->json(['error' => 'Phiên điểm danh không tồn tại.'], 404);
         }
 
-        // ✅ Kiểm tra trạng thái/khung thời gian phiên (cho phép nếu
-        // trạng thái là 'scheduled' hoặc 'active' OR hiện tại nằm giữa start_at và end_at)
         $now = now();
         $sessionStart = $session->start_at ? \Carbon\Carbon::parse($session->start_at) : null;
         $sessionEnd = $session->end_at ? \Carbon\Carbon::parse($session->end_at) : null;
@@ -61,6 +59,7 @@ class QrController extends Controller
             'class_section' => [
                 'id'     => $session->class_section_id,
                 'course' => $session->classSection?->course?->name,
+                'class_name' => $session->classSection?->classes?->first()?->name,
                 'term'   => $session->classSection?->term,
                 'room'   => $session->classSection?->room,
             ],
