@@ -11,7 +11,7 @@ FACE_MODEL = "ArcFace"
 
 # 🎨 BƯỚC 2: ĐẶT NGƯỠNG MỚI (ArcFace dùng ngưỡng khác Facenet)
 
-MATCH_THRESHOLD = 0.40
+MATCH_THRESHOLD = 0.60
 
 @app.route('/match-faces', methods=['POST'])
 def match_faces():
