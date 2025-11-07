@@ -55,6 +55,7 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
               .map((e) => e as Map<String, dynamic>)
               .toList();
           _isLoading = false;
+          print("Lịch sử điểm danh: $_history");
         });
       }
     } on DioException catch (e) {
@@ -187,7 +188,7 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
               style: TextStyle(color: Colors.black, fontSize: 16),
             );
           } else {
-            // 3. Nếu là ngày trong quá khứ -> "Vắng"
+            // 3. Nếu là ngày trong quá khứ hoặc trường hợp kết thúc -> "Vắng"
             return Text(
               "Vắng",
               style: TextStyle(
@@ -328,7 +329,7 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
       itemBuilder: (context, index) {
         // 🎨 MỚI: Lấy toàn bộ 'session'
         final session = _history[index];
-        final sessionDate = DateTime.tryParse(session['date'] ?? '');
+        final sessionDate = DateTime.tryParse(session['date'] ?? 'end_at');
         if (sessionDate == null) return const SizedBox.shrink();
 
         return Row(

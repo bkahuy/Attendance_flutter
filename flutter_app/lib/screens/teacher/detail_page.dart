@@ -207,36 +207,54 @@ class _DetailPageState extends State<DetailPage> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          // Phần lọc (đã ổn)
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildFilterChip('Tất cả'),
-                _buildFilterChip('Có mặt'),
-                _buildFilterChip('Vắng'),
-                _buildFilterChip('Muộn'),
-              ],
+      // === THAY ĐỔI DUY NHẤT: THÊM SAFEAREA ===
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Phần lọc (đã ổn)
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _buildFilterChip('Tất cả'),
+                  _buildFilterChip('Có mặt'),
+                  _buildFilterChip('Vắng'),
+                  _buildFilterChip('Muộn'),
+                ],
+              ),
             ),
-          ),
-          const Divider(height: 1),
+            const Divider(height: 1),
 
-          // Phần hiển thị Bảng (đã ổn)
-          Expanded(
-            child: _loading
-                ? const Center(child: CircularProgressIndicator())
-                : _error != null
-                ? Center( // Hiển thị lỗi
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
+            // Phần hiển thị Bảng (đã ổn)
+            Expanded(
+              child: _loading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _error != null
+                  ? Center( // Hiển thị lỗi
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text('Lỗi khi tải dữ liệu:\n$_error',
+                          textAlign: TextAlign.center),
+                      const SizedBox(height: 12),
+                      ElevatedButton(
+                        onPressed: _loadSessionDetail,
+                        child: const Text('Thử lại'),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+              // Thêm kiểm tra nếu _sessionDetail vẫn là null
+                  : _sessionDetail == null
+                  ? Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text('Lỗi khi tải dữ liệu:\n$_error',
-                        textAlign: TextAlign.center),
+                    const Text('Không nhận được dữ liệu.'),
                     const SizedBox(height: 12),
                     ElevatedButton(
                       onPressed: _loadSessionDetail,
@@ -244,296 +262,77 @@ class _DetailPageState extends State<DetailPage> {
                     ),
                   ],
                 ),
-              ),
-            )
-            // Thêm kiểm tra nếu _sessionDetail vẫn là null
-                : _sessionDetail == null
-                ? Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text('Không nhận được dữ liệu.'),
-                  const SizedBox(height: 12),
-                  ElevatedButton(
-                    onPressed: _loadSessionDetail,
-                    child: const Text('Thử lại'),
-                  ),
-                ],
-              ),
-            )
-            // Nếu có dữ liệu, hiển thị DataTable
-                : SingleChildScrollView(
-              child: DataTable(
-                columnSpacing: 16.0,
-                headingRowColor:
-                MaterialStateProperty.all(Colors.grey[100]),
-                columns: const [
-                  DataColumn(
-                      label: Text('STT',
+              )
+              // Nếu có dữ liệu, hiển thị DataTable
+                  : SingleChildScrollView(
+                child: DataTable(
+                  columnSpacing: 16.0,
+                  headingRowColor:
+                  MaterialStateProperty.all(Colors.grey[100]),
+                  columns: const [
+                    DataColumn(
+                        label: Text('STT',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold))),
+                    DataColumn(
+                        label: Text('Họ Tên',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold))),
+                    DataColumn(
+                        label: Text('Trạng thái',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold))),
+                    DataColumn(
+                        label: Text('Giờ điểm danh',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold))),
+                  ],
+                  // Dùng 'filteredStudents' đã được lọc
+                  rows:
+                  filteredStudents.asMap().entries.map((entry) {
+                    final index = entry.key + 1;
+                    final student = entry.value;
+                    return DataRow(cells: [
+                      DataCell(Text(index.toString())),
+                      DataCell(Text(student.name)),
+                      DataCell(
+                        Text(
+                          _getStatusText(student.status ?? 'Vắng'),
                           style: TextStyle(
-                              fontWeight: FontWeight.bold))),
-                  DataColumn(
-                      label: Text('Họ Tên',
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold))),
-                  DataColumn(
-                      label: Text('Trạng thái',
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold))),
-                  DataColumn(
-                      label: Text('Thời gian điểm danh',
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold))),
-                ],
-                // Dùng 'filteredStudents' đã được lọc
-                rows:
-                filteredStudents.asMap().entries.map((entry) {
-                  final index = entry.key + 1;
-                  final student = entry.value;
-                  return DataRow(cells: [
-                    DataCell(Text(index.toString())),
-                    DataCell(Text(student.name)),
-                    DataCell(
-                      Text(
-                        _getStatusText(student.status ?? 'Vắng'),
-                        style: TextStyle(
-                          color: _getStatusColor(student.status ?? 'Vắng'),
-                          fontWeight: FontWeight.bold,
+                            color: _getStatusColor(student.status ?? 'Vắng'),
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
-                    ),
-                    DataCell(Text(student.checkInTime ?? '--')),
-                  ]);
-                }).toList(),
+                      DataCell(Text(student.checkInTime ?? '--')),
+                    ]);
+                  }).toList(),
+                ),
               ),
             ),
-          ),
 
-          const Divider(height: 1),
+            const Divider(height: 1),
 
-          // Phần tổng kết (đã ổn)
-          Container(
-            padding: const EdgeInsets.all(16.0),
-            width: double.infinity,
-            color: Colors.grey[50],
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Có mặt: $presentCount',
-                    style: const TextStyle(fontSize: 16)),
-                const SizedBox(height: 4),
-                Text('Vắng: $absentCount', style: const TextStyle(fontSize: 16)),
-                const SizedBox(height: 4),
-                Text('Muộn: $lateCount', style: const TextStyle(fontSize: 16)),
-              ],
-            ),
-          )
-        ],
+            // Phần tổng kết (đã ổn)
+            Container(
+              padding: const EdgeInsets.all(16.0),
+              width: double.infinity,
+              color: Colors.grey[50],
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Có mặt: $presentCount',
+                      style: const TextStyle(fontSize: 16)),
+                  const SizedBox(height: 4),
+                  Text('Vắng: $absentCount', style: const TextStyle(fontSize: 16)),
+                  const SizedBox(height: 4),
+                  Text('Muộn: $lateCount', style: const TextStyle(fontSize: 16)),
+                ],
+              ),
+            )
+          ],
+        ),
       ),
     );
   }
 }
-
-
-
-
-
-
-// // detail_page.dart
-// import 'package:flutter/material.dart';
-// import 'package:dio/dio.dart';
-// import '../../services/attendance_service.dart';
-// import '../../models/session_detail.dart'; // Model này có thể cần sửa* (xem bên dưới)
-// // import '../../models/student.dart'; // Import này không cần nữa
-//
-// class DetailPage extends StatefulWidget {
-//   final String courseTitle;
-//   // ID này là class_section_id (vì bạn gọi getSessionList)
-//   final String sessionId;
-//
-//   const DetailPage({
-//     super.key,
-//     required this.courseTitle,
-//     required this.sessionId,
-//   });
-//
-//   @override
-//   State<DetailPage> createState() => _DetailPageState();
-// }
-//
-// class _DetailPageState extends State<DetailPage> {
-//   // === PHẦN DATA (ĐÃ ĐÚNG THEO Ý BẠN) ===
-//   List<SessionDetail> _sessionList = []; // Giữ nguyên
-//   bool _loading = true;
-//   String? _error;
-//
-//   @override
-//   void initState() {
-//     super.initState();
-//     // print("Mở DetailPage với classSectionId: ${widget.sessionId}");
-//     _loadSessionDetail();
-//   }
-//
-//   Future<void> _loadSessionDetail() async {
-//     if (widget.sessionId.isEmpty) {
-//       setState(() {
-//         _loading = false;
-//         _error = "Lỗi: Không nhận được ID.";
-//       });
-//       return;
-//     }
-//
-//     if (!_loading) {
-//       setState(() {
-//         _loading = true;
-//         _error = null;
-//       });
-//     }
-//
-//     try {
-//       // Gọi hàm getSessionList (trả về List)
-//       final detail = await AttendanceService().getSessionDetail(widget.sessionId);
-//
-//       if (mounted) {
-//         setState(() {
-//           _sessionList = detail; // Gán vào List
-//         });
-//       }
-//     } catch (e) {
-//       if (mounted) {
-//         setState(() {
-//           if (e is DioError) {
-//             _error = e.response?.data['message'] ?? e.message;
-//           } else {
-//             _error = e.toString();
-//           }
-//         });
-//       }
-//     } finally {
-//       if (mounted) {
-//         setState(() {
-//           _loading = false;
-//         });
-//       }
-//     }
-//   }
-//
-//   // === PHẦN GIAO DIỆN (Build) ===
-//   // Giao diện cũ (DataTable, Filter) BỊ XÓA BỎ
-//   // vì chúng không thể hoạt động với 1 List
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       backgroundColor: Colors.white,
-//       appBar: AppBar(
-//         title: Text(
-//           widget.courseTitle,
-//           style: const TextStyle(
-//               fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
-//         ),
-//         backgroundColor: Colors.deepPurpleAccent,
-//         elevation: 0,
-//         leading: IconButton(
-//           icon: const Icon(Icons.arrow_back),
-//           color: Colors.white,
-//           onPressed: () => Navigator.of(context).pop(),
-//         ),
-//         actions: [
-//           IconButton(
-//             icon: const Icon(Icons.refresh),
-//             color: Colors.white,
-//             onPressed: _loadSessionDetail,
-//             tooltip: 'Tải lại',
-//           ),
-//         ],
-//       ),
-//       // SỬA LẠI HOÀN TOÀN BODY
-//       body: _loading
-//           ? const Center(child: CircularProgressIndicator())
-//           : _error != null
-//           ? Center( // Hiển thị lỗi
-//         child: Padding(
-//           padding: const EdgeInsets.all(16.0),
-//           child: Column(
-//             mainAxisSize: MainAxisSize.min,
-//             children: [
-//               Text('Lỗi khi tải dữ liệu:\n$_error',
-//                   textAlign: TextAlign.center),
-//               const SizedBox(height: 12),
-//               ElevatedButton(
-//                 onPressed: _loadSessionDetail,
-//                 child: const Text('Thử lại'),
-//               ),
-//             ],
-//           ),
-//         ),
-//       )
-//           : _sessionList.isEmpty
-//           ? const Center(child: Text('Không có dữ liệu.'))
-//       // HIỂN THỊ DẠNG LISTVIEW
-//           : ListView.builder(
-//         itemCount: _sessionList.length,
-//         itemBuilder: (context, index) {
-//           final sessionItem = _sessionList[index];
-//
-//           // Card này hiển thị 1 item từ API 'sessionDetail' của Laravel
-//           // (API này trả về danh sách sinh viên lặp lại)
-//           return Card(
-//             margin: const EdgeInsets.symmetric(
-//                 horizontal: 16, vertical: 8),
-//             child: ListTile(
-//               title: Text(
-//                 // Giả sử model 'SessionDetail' của bạn có 'studentName'
-//                 sessionItem.studentName ?? 'Không có tên',
-//                 style:
-//                 const TextStyle(fontWeight: FontWeight.bold),
-//               ),
-//               subtitle: Text(
-//                 // Giả sử model có 'studentCode' và 'checkInTime'
-//                   'MSSV: ${sessionItem.studentCode ?? 'N/A'}\nGiờ điểm danh: ${sessionItem.checkInTime ?? 'N/A'}'),
-//               trailing: Text(
-//                 // Giả sử model có 'attendanceStatus'
-//                 _getStatusText(
-//                     sessionItem.attendanceStatus ?? ''),
-//                 style: TextStyle(
-//                   color: _getStatusColor(
-//                       sessionItem.attendanceStatus ?? ''),
-//                   fontWeight: FontWeight.bold,
-//                 ),
-//               ),
-//             ),
-//           );
-//         },
-//       ),
-//     );
-//   }
-//
-//   // CÁC HÀM NÀY ĐÃ THAY ĐỔI
-//   // Chúng không còn đếm, mà chỉ để lấy màu sắc/văn bản
-//   Color _getStatusColor(String status) {
-//     switch (status) {
-//       case 'present':
-//         return Colors.green;
-//       case 'absent':
-//         return Colors.red;
-//       case 'late':
-//         return Colors.orange;
-//       default:
-//         return Colors.black;
-//     }
-//   }
-//
-//   String _getStatusText(String status) {
-//     switch (status) {
-//       case 'present':
-//         return 'Có mặt';
-//       case 'absent':
-//         return 'Vắng';
-//       case 'late':
-//         return 'Muộn';
-//       default:
-//         return 'N/A';
-//     }
-//   }
-// }

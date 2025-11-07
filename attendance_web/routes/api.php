@@ -13,10 +13,10 @@ Route::prefix('auth')->group(function(){
     Route::post('change-password', [AuthController::class, 'changePassword']);
 });
 
-Route::middleware('auth:api')->group(function () {
-    Route::post('/face/enroll', [FaceController::class, 'enroll']);
-    Route::post('/face/verify', [FaceController::class, 'verify']);
-});
+//Route::middleware('auth:api')->group(function () {
+//    Route::post('/face/enroll', [FaceController::class, 'enroll']);
+//    Route::post('/face/verify', [FaceController::class, 'verify']);
+//});
 
 
 

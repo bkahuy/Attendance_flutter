@@ -193,13 +193,12 @@ class _HistoryPageState extends State<HistoryPage> {
       physics: const NeverScrollableScrollPhysics(),
       itemBuilder: (context, index) {
         final session = _searchResults[index];
-        // Sử dụng lại hàm _buildHistoryCard với dữ liệu mới
         return _buildHistoryCard(context, session);
       },
     );
   }
 
-  // === WIDGET HỖ TRỢ TẠO Ô TÌM KIẾM (Giữ nguyên) ===
+  // === WIDGET HỖ TRỢ TẠO Ô TÌM KIẾM===
   Widget _buildSearchTextField({
     required TextEditingController controller,
     required String hintText,
@@ -290,7 +289,8 @@ class _HistoryPageState extends State<HistoryPage> {
               ),
               const SizedBox(width: 16),
               Text(
-                session.startTime, // Dữ liệu từ API
+                // session.startTime,
+                session.createdAt,
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,

@@ -31,7 +31,7 @@ class AuthController extends Controller
             $requiresFace = false; // Mặc định là false
 
             if ($user->role === 'student') {
-                // Lấy student profile (giả sử bạn đã định nghĩa 'student' relationship trong User model)
+                // Lấy student profile
                 $student = $user->student;
 
                 if ($student) {
@@ -47,7 +47,6 @@ class AuthController extends Controller
                     \Log::warning('User ' . $user->id . ' có role student nhưng không tìm thấy student profile.');
                 }
             }
-            // --- Kết thúc BƯỚC 1 ---
 
 
             return response()->json([
@@ -56,7 +55,6 @@ class AuthController extends Controller
                 'expires_in'   => auth('api')->factory()->getTTL() * 60,
                 'user'         => $user->only(['id','name','email','role']),
 
-                // 🎨 BƯỚC 2: Thêm cờ (flag) này vào JSON trả về
                 'requires_face_registration' => $requiresFace,
 
             ], 200);
