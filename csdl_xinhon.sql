@@ -916,8 +916,6 @@ INSERT INTO class_section_students (class_section_id, student_id) VALUES
 (48, 116), (48, 117), (48, 118), (48, 119), (48, 120);
 
 
-INSERT INTO schedules (class_section_id, date, weekday, start_time, end_time, recurring_flag, location_lat, location_lng) VALUES
-(1, '2025-11-06', 3, '17:00:00', '23:59:00', 0, NULL, NULL) -- T2 Ca 1
 
 INSERT INTO schedules (class_section_id, weekday, start_time, end_time, recurring_flag, location_lat, location_lng) VALUES
 -- Giảng viên 2 (Dạy 1, 3, 5, 7, 9, 11) & Giảng viên 3 (Dạy 2, 4, 6, 8, 10, 12)
@@ -1159,7 +1157,7 @@ FROM
   JOIN class_sections AS cs ON a_sess.class_section_id = cs.id
   JOIN courses AS c ON cs.course_id = c.id
 WHERE
-  a_sess.id = 8 -- <-- THAY ? BẰNG ID BUỔI HỌC (attendance_session_id)
+  a_sess.id = 18 -- <-- THAY ? BẰNG ID BUỔI HỌC (attendance_session_id)
 LIMIT
   1;
   
@@ -1174,8 +1172,38 @@ FROM
   JOIN students AS s ON css.student_id = s.id
   JOIN users AS u ON s.user_id = u.id
   LEFT JOIN attendance_records AS ar ON ar.student_id = s.id
-  AND ar.attendance_session_id = 8 -- <-- THAY ? BẰNG ID BUỔI HỌC (giống câu 1)
+  AND ar.attendance_session_id = 18 -- <-- THAY ? BẰNG ID BUỔI HỌC (giống câu 1)
 WHERE
   css.class_section_id = 1 -- <-- THAY ? BẰNG class_section_id (từ kết quả câu 1)
 ORDER BY
   u.name;
+
+
+
+INSERT INTO schedules (class_section_id, date, weekday, start_time, end_time, recurring_flag, location_lat, location_lng) VALUES
+(1, '2025-11-07', 4, '05:00:00', '23:59:00', 0, NULL, NULL)
+
+
+
+
+
+
+SELECT
+    sessions.id AS session_id,
+    sessions.start_at AS date,
+    -- Nếu không tìm thấy bản ghi (records.status là NULL),
+    -- thì trả về 'pending', ngược lại trả về status
+    COALESCE(records.status, 'pending') AS status
+FROM
+    attendance_sessions AS sessions
+LEFT JOIN
+    attendance_records AS records
+ON
+    -- Kết nối bản ghi với buổi học
+    sessions.id = records.attendance_session_id
+    -- Và chỉ lấy bản ghi của đúng sinh viên đó
+    AND records.student_id = 12 -- (Thay :student_id bằng ID sinh viên)
+WHERE
+    sessions.class_section_id = 1 -- (Thay :class_section_id bằng ID lớp)
+ORDER BY
+    sessions.start_at ASC;

@@ -8,6 +8,8 @@ class AttendanceHistory {
   final String startTime;
   final String endAt;
   final String time;
+  final String createdAt;
+
 
   AttendanceHistory({
     required this.id,
@@ -19,6 +21,7 @@ class AttendanceHistory {
     required this.startTime,
     required this.endAt,
     required this.time,
+    required this.createdAt,
   });
 
   // Factory constructor để parse JSON
@@ -33,6 +36,7 @@ class AttendanceHistory {
       startTime: json['start_time'] ?? 'N/A',
       endAt: json['end_at'] ?? 'N/A',
       time: json['time'] ?? 'N/A',
+      createdAt: json['created_at'] ?? 'N/A',
     );
   }
 }

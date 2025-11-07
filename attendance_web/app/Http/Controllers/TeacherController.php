@@ -120,13 +120,13 @@ class TeacherController extends Controller
         $today = now()->toDateString();
 
         $existingSession = AttendanceSession::where('class_section_id', $data['class_section_id'])
-            ->whereDate('created_at', $today)
+            ->whereDate('start_at', $today)
             ->first();
 
         if ($existingSession) {
             // Nếu có thì cập nhật thay vì tạo mới
             $existingSession->update([
-                'class_section_id' => $data['class_section_id'],
+//                'class_section_id' => $data['class_section_id'],
                 'start_at'   => $data['start_at'],
                 'end_at'     => $data['end_at'],
                 'mode_flags' => $data['mode_flags'],
