@@ -62,7 +62,6 @@ class _StudentHomeState extends State<StudentHome> {
       initialDate: selectedDate,
       firstDate: DateTime(2024),
       lastDate: DateTime(2026),
-      // 🎨 Đã xóa locale để tránh lỗi
     );
     if (picked != null) _changeDay(picked);
   }
@@ -70,7 +69,7 @@ class _StudentHomeState extends State<StudentHome> {
   Future<List<Map<String, dynamic>>> _fetchSchedule() async {
     try {
       final res = await ApiClient().dio.get(
-        "${AppConfig.BASE_URL}${AppConfig.studentSchedulePath}",
+        AppConfig.studentSchedulePath,
         queryParameters: {
           'date': DateFormat('yyyy-MM-dd').format(selectedDate),
         },
@@ -121,10 +120,10 @@ class _StudentHomeState extends State<StudentHome> {
     ];
   }
 
-  // 🎨 KẾ THỪA (Giống TeacherHome): Getter cho tiêu đề trang
+  // 🎨 KẾ THỪA: Getter cho tiêu đề trang
   List<String> get _pageTitles => const ['Trang chủ', 'Cài đặt'];
 
-  // 🎨 KẾ THỪA (Giống TeacherHome): Hàm build AppBar động
+  // 🎨 KẾ THỪA: Hàm build AppBar động
   AppBar _buildAppBar() {
     if (_pageIndex == 0) {
       // Trang chủ: hiển thị thông tin user
@@ -238,8 +237,7 @@ class _StudentHomeState extends State<StudentHome> {
 
           // 🎨 CẬP NHẬT: Logic onTap (Đã hoàn thiện)
           onTap: (tapIndex) async {
-            // ---------------------------------
-            // --- XỬ LÝ NHẤN VÀO ICON HOME (index 0) ---
+
             if (tapIndex == 0) {
               setState(() {
                 _visualTabIndex = 0; // Sáng nút Home

@@ -138,7 +138,8 @@ class StudentController extends Controller
         }
 
         $newTemplateBase64 = $data['template_base64'];
-        $aiServiceUrl = 'http://127.0.0.1:5001/match-faces';
+//        $aiServiceUrl = 'http://127.0.0.1:5001/match-faces';
+        $aiServiceUrl = 'http://103.75.183.227:5001/match-faces';
         $isMatch = false;
         $aiError = 'Khuôn mặt không khớp. Vui lòng thử lại.';
 

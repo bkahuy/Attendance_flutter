@@ -142,18 +142,18 @@ class _StudentCheckinPageState extends State<StudentCheckinPage> {
 
     final s = widget.session;
 
-
     final classSection = (s['class_section'] is Map<String, dynamic>)
         ? s['class_section'] as Map<String, dynamic>
         : <String, dynamic>{}; // Map rỗng
-    final courseName = classSection['course'] ?? '--'; // Key đúng là 'course'
 
-// 3. Xử lý "className"
-//    API của bạn KHÔNG trả về 'class_name'.
-//    Có thể bạn muốn hiển thị 'term' (học kỳ) hoặc 'room' (phòng học)?
-    final className = classSection['class_name'] ?? '--';
-// hoặc
-    final room = classSection['room'] ?? '--'; // 👈 TẠM DÙNG 'room'
+    final className = s['class_name'] ?? classSection['class_name'];
+    final courseName = s['course_name'] ?? classSection['course'];
+
+
+
+    // final courseName = classSection['course'] ?? '--';
+   // final className = classSection['class_name'] ?? '--';
+    final room = s['room'] ?? classSection['room'];
 
     final sessionDate = DateTime.tryParse(s['date'] ?? '') ?? DateTime.now();
     final formattedDate = DateFormat("E dd/MM/yyyy", "vi_VN").format(sessionDate);
@@ -169,7 +169,7 @@ class _StudentCheckinPageState extends State<StudentCheckinPage> {
           'Máy ảnh',
           style: TextStyle(color: Colors.white),
         ),
-        backgroundColor: Colors.indigo.shade400,
+        backgroundColor: Colors.deepPurpleAccent,
         elevation: 1,
       ),
       backgroundColor: Colors.white,
