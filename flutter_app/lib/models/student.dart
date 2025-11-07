@@ -19,7 +19,7 @@ class Student {
       id: json['student_id'],
       name: json['student_name'],
       studentCode: json['student_code'],
-      status: json['status'] ?? 'absent',
+      status: json['status'] ?? 'present',
       checkInTime: json['checkin_time'] ?? '--',
     );
   }

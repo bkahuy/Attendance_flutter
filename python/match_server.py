@@ -12,7 +12,8 @@ FACE_MODEL = "ArcFace"
 # 🎨 BƯỚC 2: ĐẶT NGƯỠNG MỚI (ArcFace dùng ngưỡng khác Facenet)
 
 MATCH_THRESHOLD = 0.60
-
+_ = DeepFace.build_model(FACE_MODEL)
+print(f"--- MÔ HÌNH {FACE_MODEL} ĐÃ ĐƯỢC TẢI VÀ SẴN SÀNG SỬ DỤNG ---")
 @app.route('/match-faces', methods=['POST'])
 def match_faces():
     try:
@@ -31,7 +32,7 @@ def match_faces():
             liveness_result = DeepFace.analyze(
                 img_path = img2_b64,
                 actions = ['liveness'],
-                enforce_detection = True 
+                enforce_detection = True,
             )
             
             liveness_data = liveness_result[0]
@@ -81,3 +82,6 @@ def match_faces():
 if __name__ == '__main__':
     # Chạy server trên cổng 5001
     app.run(host='0.0.0.0', port=5001)
+
+
+# waitress-serve --host=0.0.0.0 --port=5001 match_server:app

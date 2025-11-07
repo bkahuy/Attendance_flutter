@@ -5,7 +5,7 @@ import 'dart:io';
 
 import '../../api/api_client.dart';
 import '../../utils/config.dart';
-
+import 'package:intl/date_symbol_data_local.dart';
 import 'face_scan_page.dart';
 import 'student_checkin_page.dart';
 import 'student_home.dart'; // 💡 THÊM: Cần cho PopUntil hoạt động ổn định toàn hệ thống
@@ -26,8 +26,10 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
   @override
   void initState() {
     super.initState();
-    Intl.defaultLocale = 'vi_VN';
-    _loadHistory();
+    initializeDateFormatting('vi_VN').then((_) {
+      Intl.defaultLocale = 'vi_VN';
+      _loadHistory();
+    });
   }
 
   /// 🔹 Gọi API để lấy lịch sử điểm danh
@@ -44,7 +46,7 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
       }
 
       final res = await ApiClient().dio.get(
-        "${AppConfig.BASE_URL}${AppConfig.studentHistoryPath}/$classSectionId/attendance",
+        "${AppConfig.studentHistoryPath}/$classSectionId/attendance",
       );
 
       if (mounted) {
@@ -160,42 +162,42 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
         );
 
       case 'pending':
-      default:
-        if (isToday) {
-          // 1. "ĐIỂM DANH" (Button)
-          return TextButton(
-            // 🎨 MỚI: Gọi hàm _startFaceScanFlow và truyền 'session'
-            onPressed: () => _startFaceScanFlow(session),
-            style: TextButton.styleFrom(
-              padding: EdgeInsets.zero,
-              minimumSize: const Size(50, 30),
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              alignment: Alignment.centerRight,
-            ),
-            child: const Text(
-              "ĐIỂM DANH",
+        default:
+          if (isToday) {
+            // 1. "ĐIỂM DANH" (Button)
+            return TextButton(
+              // 🎨 MỚI: Gọi hàm _startFaceScanFlow và truyền 'session'
+              onPressed: () => _startFaceScanFlow(session),
+              style: TextButton.styleFrom(
+                padding: EdgeInsets.zero,
+                minimumSize: const Size(50, 30),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                alignment: Alignment.centerRight,
+              ),
+              child: const Text(
+                "ĐIỂM DANH",
+                style: TextStyle(
+                    color: Colors.red, fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+            );
+          } else if (date.isAfter(now)) {
+            // 2. Nếu là ngày tương lai -> "?"
+            return const Text(
+              "?",
+              style: TextStyle(color: Colors.black, fontSize: 16),
+            );
+          } else {
+            // 3. Nếu là ngày trong quá khứ -> "Vắng"
+            return Text(
+              "Vắng",
               style: TextStyle(
-                  color: Colors.red, fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-          );
-        } else if (date.isAfter(now)) {
-          // 2. Nếu là ngày tương lai -> "?"
-          return const Text(
-            "?",
-            style: TextStyle(color: Colors.black, fontSize: 16),
-          );
-        } else {
-          // 3. Nếu là ngày trong quá khứ -> "Vắng"
-          return Text(
-            "Vắng",
-            style: TextStyle(
-                color: Colors.red.shade700,
-                fontSize: 16,
-                fontWeight: FontWeight.normal),
-          );
+                  color: Colors.red.shade700,
+                  fontSize: 16,
+                  fontWeight: FontWeight.normal),
+            );
+          }
         }
-    }
-  }
+      }
 
   @override
   Widget build(BuildContext context) {
@@ -288,7 +290,6 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
     );
   }
 
-  /// 🔹 Widget hiển thị danh sách (loading, error, data)
   Widget _buildHistoryList() {
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());

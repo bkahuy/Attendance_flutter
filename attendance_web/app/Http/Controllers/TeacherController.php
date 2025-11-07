@@ -159,7 +159,7 @@ class TeacherController extends Controller
 
             $session->qrTokens()->create([
                 'token'      => $token,
-                'expires_at' => now()->addMinutes(15),
+                'expires_at' => $data['end_at'],
             ]);
 
             // Nếu tạo QR tức là giảng viên muốn mở phiên ngay lập tức,
@@ -219,6 +219,8 @@ class TeacherController extends Controller
             $session->end_at = now();
             $session->status = 'closed';
             $session->save();
+
+            $session->qrTokens()->delete();
 
             // Lấy thống kê nhanh
             $stats = DB::selectOne("
